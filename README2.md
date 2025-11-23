@@ -1,34 +1,58 @@
-# 달려라 택시 (DallyeoRaTaxi)
----
-택시 기사 수입/지출/운행 효율 분석 모바일 앱
+# ZipTaxi
 
-## 소개
----
-달려라 택시는 택시 기사의 수입과 지출, 운행 기록을 자동으로 집계하고 효율적으로 분석할 수 있도록 도와주는 크로스 플랫폼 모바일 앱입니다.
-- 다양한 플랫폼(카카오, 카드, 현금) 수입 통합 
-- GPS 기반 운행 거리 자동 기록 
-- 실시간 성과 대시보드 및 목표 달성 관리 
-- Supabase 기반 완전 무료 API, SQL 관계형 데이터 활용
+## Project Overview
+개인택시 기사님들을 위한 수익 관리 및 목표 달성 도우미 앱입니다.
+간편한 수익 기록과 AI 기반의 데이터 분석을 통해 월 목표 매출 달성을 돕습니다.
 
-## 핵심 기능
----
-- 자동 수입 통합 (플랫폼 연동)
-- 운행 비용 및 거리 자동/간편 기록 (GPS)
-- 성과 대시보드 (일/주/월 분석, 목표 관리)
-- 데이터 시각화 및 직관적 인사이트 제공
+## Key Features
+1. **수익 기록 (Revenue Tracking)**:
+   - 일별/월별 운행 수익 입력
+   - 카드/현금/앱(카카오/우티) 결제 수단 구분
 
-## 기술 스택
----
-| 계층                 | 기술              | 선택 이유                                              |
-|--------------------|------------------|-------------------------------------------------------|
-| 프론트엔드              | React Native     | JavaScript/TypeScript 기반, iOS/Android 동시 개발, 큰 커뮤니티    |
-| 백엔드/DB             | Firebase (Firestore) | NoSQL 실시간 DB, 서버리스, 자동 확장, 무료 플랜 제공              |
-| 인증                 | Firebase Authentication | 이메일, 소셜 로그인 간편 통합, JWT 자동 관리                     |
-| 위치/지도 | React Native Maps + Geolocation | GPS 추적, 거리 계산, 지도 시각화                                |
-| 차트/시각화 | React Native Chart Kit | 수입/지출 그래프, 성과 대시보드 구현                           |
-| 상태관리   | React Context 또는 Zustand | 간단한 전역 상태 관리 (초보자 친화적)                           |
+2. **목표 관리 (Goal Management)**:
+   - 월별 목표 매출 설정
+   - 실시간 달성률 그래프 시각화
 
+3. **AI 분석 리포트 (AI Insights)**:
+   - "사장님, 이번 달 목표까지 30만원 남았어요! 오늘 평소보다 2시간 더 운행하면 달성 가능합니다."
+   - 운행 패턴 분석 및 맞춤형 조언 제공 (OpenAI API 활용)
 
-## 관련 문서
----
-[작성 중인 문서](https://docs.google.com/spreadsheets/d/1sqA4ephbZFJKBs-P2Pvge1yL5gwPARgd9yPqJlXx6H4/edit?usp=sharing)
+## Tech Stack
+- **Frontend**: React Native (TypeScript)
+- **Backend/Database**: Firebase (Firestore, Auth)
+- **AI**: OpenAI API (GPT-4o-mini)
+- **State Management**: React Context API / Zustand
+
+## Setup
+1. Clone the repository
+2. `npm install`
+3. `cd ios && pod install`
+4. Create `.env` file with:
+   - FIREBASE_API_KEY
+   - OPENAI_API_KEY
+5. `npm run ios` or `npm run android`
+
+# 작업상황
+## ✅ 1-2일차 완료 체크리스트
+ ```
+ [ ] Node.js, Watchman, Java 설치
+ [ ] Android Studio 설치 및 SDK 세팅
+ [ ] Android 에뮬레이터 생성 및 실행
+ [ ] React Native 프로젝트 생성
+ [ ] 첫 앱 실행 성공 (Welcome 화면)
+ [ ] Firebase 프로젝트 생성
+ [ ] Firestore + Authentication 활성화
+ [ ] Firebase SDK 설치 및 연동 테스트
+ [ ] 프로젝트 폴더 구조 생성
+ [ ] React Navigation 설치
+ [ ] OpenAI API 키 발급
+ [ ] OpenAI 연동 및 테스트 성공
+ ```
+## 📅 다음 단계 (3일차부터)
+ ```
+ 3일차: 로그인 기능 구현
+ 4일차: 수입 입력 기능 + Firestore 저장
+ 5일차: 대시보드 통계 계산
+ 6일차: 목표 설정 및 진행률 표시
+ 7일차: 첫 AI 기능 (수입 분석 인사이트)
+ ```
