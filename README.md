@@ -1,97 +1,57 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ZipTaxi
 
-# Getting Started
+## Project Overview
+개인택시 기사님들을 위한 수익 관리 및 목표 달성 도우미 앱입니다.
+간편한 수익 기록과 AI 기반의 데이터 분석을 통해 월 목표 매출 달성을 돕습니다.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Key Features
+1. **수익 기록 (Revenue Tracking)**:
+   - 일별/월별 운행 수익 입력
+   - 카드/현금/앱(카카오/우티) 결제 수단 구분
 
-## Step 1: Start Metro
+2. **목표 관리 (Goal Management)**:
+   - 월별 목표 매출 설정
+   - 실시간 달성률 그래프 시각화
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+3. **AI 분석 리포트 (AI Insights)**:
+   - "사장님, 이번 달 목표까지 30만원 남았어요! 오늘 평소보다 2시간 더 운행하면 달성 가능합니다."
+   - 운행 패턴 분석 및 맞춤형 조언 제공 (OpenAI API 활용)
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+## Tech Stack
+- **Frontend**: React Native (TypeScript)
+- **Backend/Database**: Firebase (Firestore, Auth)
+- **AI**: OpenAI API (GPT-4o-mini)
+- **State Management**: React Context API / Zustand
 
-```sh
-# Using npm
-npm start
+## Setup
+1. Clone the repository
+2. `npm install`
+3. `cd ios && pod install`
+4. Create `.env` file with:
+   - FIREBASE_API_KEY
+   - OPENAI_API_KEY
+5. `npm run ios` or `npm run android`
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+# 작업상황
+## ✅ 1-2일차 완료 체크리스트
+ ```
+ [ ] Node.js, Watchman, Java 설치 [ ] Android Studio 설치 및 SDK 세팅
+ [ ] Android 에뮬레이터 생성 및 실행
+ [ ] React Native 프로젝트 생성
+ [ ] 첫 앱 실행 성공 (Welcome 화면)
+ [ ] Firebase 프로젝트 생성
+ [ ] Firestore + Authentication 활성화
+ [ ] Firebase SDK 설치 및 연동 테스트
+ [ ] 프로젝트 폴더 구조 생성
+ [ ] React Navigation 설치
+ [ ] OpenAI API 키 발급
+ [ ] OpenAI 연동 및 테스트 성공
+ ```
+## 📅 다음 단계 (3일차부터)
+ ```
+ 3일차: 로그인 기능 구현
+ 4일차: 수입 입력 기능 + Firestore 저장
+ 5일차: 대시보드 통계 계산
+ 6일차: 목표 설정 및 진행률 표시
+ 7일차: 첫 AI 기능 (수입 분석 인사이트)
+ ```

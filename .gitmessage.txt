@@ -1,0 +1,12 @@
+
+# <type>: <subject>
+# 본문 내용을 여기에 작성하세요 (선택 사항)
+
+# Conventional Commits 형식 가이드:
+# feat: 새로운 기능 추가
+# fix: 버그 수정
+# docs: 문서 수정
+# style: 코드 스타일 변경
+# refactor: 코드 리팩토링
+# test: 테스트 코드 추가
+# chore: 빌드 도구나 보조 기능 수정

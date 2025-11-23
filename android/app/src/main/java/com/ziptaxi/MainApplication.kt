@@ -1,4 +1,4 @@
-package com.ziptaxitemp
+package com.ziptaxi
 
 import android.app.Application
 import com.facebook.react.PackageList
