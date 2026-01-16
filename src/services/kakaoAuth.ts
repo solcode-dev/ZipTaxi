@@ -44,8 +44,10 @@ export class KakaoAuthService {
     try {
       await logout();
     } catch (error: any) {
-      // Silently fail, as logout should always succeed from the app's perspective
-      console.warn('Kakao logout failed:', error);
+      // Log the error type but don't throw - logout should always succeed from app perspective
+      if (__DEV__) {
+        console.warn('Kakao logout failed:', error?.message || error);
+      }
     }
   }
 }

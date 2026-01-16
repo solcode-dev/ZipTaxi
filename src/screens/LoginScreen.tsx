@@ -48,7 +48,7 @@ export const LoginScreen: React.FC = () => {
 
     if (!password || password.length < 6) {
       setPasswordError(true);
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Error', t('auth.errors.password-too-short'));
       return;
     }
 

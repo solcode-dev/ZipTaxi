@@ -53,9 +53,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // For now, we'll just set a mock user (this won't work with actual Firebase)
       // You MUST implement the backend token exchange for this to work properly
-      console.warn(
-        'Kakao login successful, but Firebase integration requires backend implementation',
-      );
+      if (__DEV__) {
+        console.warn(
+          'Kakao login successful, but Firebase integration requires backend implementation',
+        );
+      }
 
       // Mock user for demonstration
       const mockUser: User = {

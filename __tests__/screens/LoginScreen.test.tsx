@@ -114,7 +114,7 @@ describe('LoginScreen', () => {
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         'Error',
-        'Password must be at least 6 characters',
+        'auth.errors.password-too-short',
       );
     });
   });
