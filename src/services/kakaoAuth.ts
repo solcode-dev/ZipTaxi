@@ -32,7 +32,7 @@ export class KakaoAuthService {
         nickname: profile.nickname,
         profileImageUrl: profile.profileImageUrl,
       };
-    } catch (error: any) {
+    } catch {
       throw new Error('kakao/profile-fetch-failed');
     }
   }

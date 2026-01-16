@@ -1,5 +1,5 @@
 // App.tsx
-import React, {useEffect} from 'react';
+import React from 'react';
 import {View, ActivityIndicator, StyleSheet} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
 import {LoginScreen} from './src/screens/LoginScreen';

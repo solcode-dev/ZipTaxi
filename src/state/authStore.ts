@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({isLoading: true});
 
       // Step 1: Login with Kakao
-      const kakaoResult = await KakaoAuthService.login();
+      await KakaoAuthService.login();
 
       // Step 2: Get Kakao profile
       const profile = await KakaoAuthService.getProfile();
