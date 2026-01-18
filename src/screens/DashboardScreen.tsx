@@ -24,15 +24,24 @@ const MOCK_DATA = {
   todayRevenue: 156000, // New mock data for today
 };
 
+import { useStreakCalculator } from '../hooks/useStreakCalculator';
+
 export const DashboardScreen = ({ navigation }: any) => {
   const [userName, setUserName] = useState('');
   const [monthlyGoal, setMonthlyGoal] = useState(0); // Default 0
   
-  // Smart Daily Goal Logic (Using Real Data)
+  // Smart Daily Goal Logic
   const dailyGoalData = useDailyGoalCalculator(
     monthlyGoal,
     MOCK_DATA.currentAmount,
     MOCK_DATA.todayRevenue
+  );
+
+  // Streak Logic
+  const streakData = useStreakCalculator(
+    monthlyGoal,
+    MOCK_DATA.todayRevenue,
+    dailyGoalData.dailyTarget
   );
 
   // Custom Alert State
@@ -77,8 +86,16 @@ export const DashboardScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🚕 운행 성과 대시보드</Text>
-        <Text style={styles.greeting}>{userName ? `${userName}님, 안전운행 하세요!` : '오늘도 안전운행 하세요!'}</Text>
+        <View>
+          <Text style={styles.headerTitle}>🚕 운행 성과 대시보드</Text>
+          <Text style={styles.greeting}>{userName ? `${userName}님, 안전운행 하세요!` : '오늘도 안전운행 하세요!'}</Text>
+        </View>
+        {/* Streak Badge */}
+        {streakData.currentStreak > 0 && (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>🔥 {streakData.currentStreak}일 연속</Text>
+          </View>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -158,6 +175,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  streakBadge: {
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  streakText: {
+    color: '#FF6B6B',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   headerTitle: {
     fontSize: 20,
