@@ -7,13 +7,13 @@ interface DailyGoalCardProps {
   data: DailyGoalResult;
 }
 
-export const DailyGoalCard = ({ data }: DailyGoalCardProps) => {
+export const DailyGoalCard = (props: DailyGoalCardProps) => {
+  const { data } = props;
   const {
     dailyTarget,
     progressPercent,
     isBonusMode,
     bonusAmount,
-    remainingDays,
     statusMessage
   } = data;
 
@@ -32,9 +32,10 @@ export const DailyGoalCard = ({ data }: DailyGoalCardProps) => {
       <View style={styles.header}>
         <Text style={isBonusMode ? styles.bonusLabel : styles.label}>🔥 오늘의 미션</Text>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>D-{remainingDays}</Text>
-          </View>
+          {/* History Button (New) */}
+
+
+          {/* Goal Setting Button */}
           <View style={styles.settingButton}>
             <Text style={styles.settingButtonText}>목표 수정 ✎</Text>
           </View>
@@ -160,6 +161,23 @@ const styles = StyleSheet.create({
   settingButtonText: {
     fontSize: 12,
     color: '#333333',
+    fontWeight: 'bold',
+  },
+  historyButton: {
+    backgroundColor: '#FFE812', // Kakao Yellow for visibility
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginRight: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  historyButtonText: {
+    fontSize: 12,
+    color: '#3C1E1E',
     fontWeight: 'bold',
   },
 });

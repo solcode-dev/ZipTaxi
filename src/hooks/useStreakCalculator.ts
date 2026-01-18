@@ -99,9 +99,14 @@ export const useStreakCalculator = (
         lastGoalDate: todayStr
       };
 
-      if (freezeConsumed > 0) {
+      // [Feature #5] Reward System: 7일 연속 달성 시마다 휴무권 1개 지급
+      if (newStreak > 0 && newStreak % 7 === 0) {
+        const currentFreeze = (data.freezeCount || 0) - freezeConsumed; // 이미 소모된 것 반영 후 계산
+        updatePayload.freezeCount = currentFreeze + 1;
+        // NOTE: UI에서 "휴무권 획득!" 알림을 띄우기 위해선 별도 플래그가 필요할 수 있음.
+        // 현재는 데이터상으로만 지급.
+      } else if (freezeConsumed > 0) {
         updatePayload.freezeCount = (data.freezeCount || 0) - freezeConsumed;
-        // TODO: 사용자에게 "휴무권 N개 사용됨" 알림을 띄우면 좋음 (여기선 로직만 처리)
       }
 
       await firestore().collection('users').doc(uid).update(updatePayload);

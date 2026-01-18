@@ -18,7 +18,6 @@ export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState(''); // This acts as the ID input
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isSelectedAutoLogin, setIsSelectedAutoLogin] = useState(false);
   const [fontScale, setFontScale] = useState(1); // 1 = 100%
   const [loading, setLoading] = useState(false);
 
@@ -36,11 +35,11 @@ export const LoginScreen = ({ navigation }: any) => {
     const subscriber = auth().onAuthStateChanged(user => {
       if (user) {
          // User is signed in
-         // navigation.replace('Dashboard'); // Uncomment to enable auto-login
+        navigation.replace('Dashboard');
       }
     });
     return subscriber; // unsubscribe on unmount
-  }, []);
+  }, [navigation]);
 
   const currentFontSize = (size: number) => size * fontScale;
 
@@ -125,18 +124,8 @@ export const LoginScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Auto Login & Font Size Control */}
         <View style={styles.optionsRow}>
-            <TouchableOpacity 
-                style={styles.checkboxContainer} 
-                onPress={() => setIsSelectedAutoLogin(!isSelectedAutoLogin)}
-            >
-                <View style={[styles.checkbox, isSelectedAutoLogin && styles.checkboxSelected]}>
-                    {isSelectedAutoLogin && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.optionText}>자동 로그인</Text>
-            </TouchableOpacity>
-
+            <View style={{flex: 1}} /> 
             <View style={styles.fontControl}>
                 <TouchableOpacity onPress={() => setFontScale(Math.max(1, fontScale - 0.1))} style={styles.fontButton}>
                     <Text style={styles.fontButtonText}>가</Text>
@@ -179,10 +168,16 @@ export const LoginScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.socialContainer}>
-            <TouchableOpacity style={[styles.socialButton, { backgroundColor: theme.colors.social.kakao }]}>
+            <TouchableOpacity 
+                style={[styles.socialButton, { backgroundColor: theme.colors.social.kakao }]}
+                onPress={() => showAlert('알림', '준비 중인 기능입니다.')}
+            >
                 <Text style={[styles.socialButtonText, { color: '#000000' }]}>카카오 로그인</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.socialButton, { backgroundColor: theme.colors.social.naver }]}>
+            <TouchableOpacity 
+                style={[styles.socialButton, { backgroundColor: theme.colors.social.naver }]}
+                onPress={() => showAlert('알림', '준비 중인 기능입니다.')}
+            >
                 <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>네이버 로그인</Text>
             </TouchableOpacity>
         </View>

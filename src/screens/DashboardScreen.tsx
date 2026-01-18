@@ -2,67 +2,116 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { theme } from '../theme';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getFirestore, doc, onSnapshot } from '@react-native-firebase/firestore';
 
 import { CustomAlert } from '../components/CustomAlert';
+import { RevenueInputModal } from '../components/RevenueInputModal';
+import { RevenueHistoryModal } from '../components/RevenueHistoryModal';
+import { SettingsModal } from '../components/SettingsModal';
 
 import { useDailyGoalCalculator } from '../hooks/useDailyGoalCalculator';
 import { DailyGoalCard } from '../components/DailyGoalCard';
+import { useStreakCalculator } from '../hooks/useStreakCalculator';
+import { TrendChartCard } from '../components/TrendChartCard';
+import { useRevenueTracker } from '../hooks/useRevenueTracker';
 
 const { width } = Dimensions.get('window');
 
 // Mock Data (will be replaced with real data later)
 const MOCK_DATA = {
-  totalRevenue: 2250000,
-  totalRevenueTrend: 5.2, // percentage
-  hourlyRevenue: 25000,
+  // totalRevenue: 2250000, -> Replaced by Hook
+  totalRevenueTrend: 5.2, // percentage (Keep Mock for Phase 1)
+  hourlyRevenue: 25000,   // (Keep Mock)
   hourlyRevenueTrend: 6.2,
-  kmRevenue: 1200,
+  kmRevenue: 1200,        // (Keep Mock)
   kmRevenueTrend: 5.2,
-  goalAmount: 5000000,
-  currentAmount: 2250000, // 45% (matches totalRevenue for consistency)
-  todayRevenue: 156000, // New mock data for today
+  // goalAmount: 5000000, -> Replaced by Hook/State
+  // currentAmount: 2250000, -> Replaced by Hook
+  // todayRevenue: 156000, -> Replaced by Hook
 };
-
-import { useStreakCalculator } from '../hooks/useStreakCalculator';
 
 export const DashboardScreen = ({ navigation }: any) => {
   const [userName, setUserName] = useState('');
   const [monthlyGoal, setMonthlyGoal] = useState(0); // Default 0
   
-  // Smart Daily Goal Logic
+  // Real Revenue Tracker
+  const { totalRevenue, todayRevenue, monthlyRevenue, addRevenue } = useRevenueTracker();
+
+  // Smart Daily Goal Logic (Now using Real Data)
   const dailyGoalData = useDailyGoalCalculator(
     monthlyGoal,
-    MOCK_DATA.currentAmount,
-    MOCK_DATA.todayRevenue
+    monthlyRevenue, // Use Real Monthly Revenue
+    todayRevenue    // Use Real Today Revenue
   );
 
-  // Streak Logic
+  // Streak Logic (Now using Real Data)
   const streakData = useStreakCalculator(
     monthlyGoal,
-    MOCK_DATA.todayRevenue,
+    todayRevenue,
     dailyGoalData.dailyTarget
   );
 
-  // Custom Alert State
+  // [Feature #5] Reward Notification Logic
+  const prevFreezeCountRef = React.useRef(streakData.freezeCount);
+
+  useEffect(() => {
+    // Check if freezeCount increased
+    if (streakData.freezeCount > prevFreezeCountRef.current) {
+      const added = streakData.freezeCount - prevFreezeCountRef.current;
+      showAlert("축하합니다! 🎉", `7일 연속 달성 보상으로\n휴무권 ${added}개를 획득하셨습니다! 🛡️`);
+    }
+    // Update ref
+    prevFreezeCountRef.current = streakData.freezeCount;
+  }, [streakData.freezeCount]);
+  
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
+  const [isInputModalVisible, setInputModalVisible] = useState(false);
+  const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
+  
+  // Settings Logic
+  const [isSettingsModalVisible, setSettingsModalVisible] = useState(false);
 
   const showAlert = (title: string, message: string) => {
     setAlertConfig({ title, message });
     setAlertVisible(true);
   };
+  
+  const handleLogout = async () => {
+    try {
+      await auth().signOut();
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      showAlert('오류', '로그아웃 중 문제가 발생했습니다.');
+    }
+  };
+
+  const handleRevenueConfirm = async (amount: number, source: any) => {
+      const success = await addRevenue(amount, source);
+      if (success) {
+          // Play sound here later
+          // showAlert('입력 완료', `${amount.toLocaleString()}원이 저장되었습니다.`); 
+          // Note: UX said "Toast" style. For now, visual update of number is enough + maybe simple Alert or nothing for speed.
+          // Let's show a quick alert or just close. "성취감" might need a nice animation later.
+          // For now, let's keep it fast.
+      } else {
+          showAlert('오류', '저장에 실패했습니다.');
+      }
+  };
 
   useEffect(() => {
     const user = auth().currentUser;
     if (user) {
-      // Real-time listener for user data (Name & Goal)
-      const unsubscribe = firestore().collection('users').doc(user.uid)
-        .onSnapshot(documentSnapshot => {
-          const data = documentSnapshot.data();
-          setUserName(data?.name || '기사님');
-          setMonthlyGoal(data?.monthlyGoal || 0); // Fetch goal
-        });
+      // Real-time listener for user data (Name & Goal) using Modular SDK
+      const db = getFirestore();
+      const userDocRef = doc(db, 'users', user.uid);
+
+      const unsubscribe = onSnapshot(userDocRef, (documentSnapshot) => {
+        const data = documentSnapshot.data();
+        setUserName(data?.name || '기사님');
+        setMonthlyGoal(data?.monthlyGoal || 0); // Fetch goal
+      });
 
       return () => unsubscribe();
     }
@@ -74,7 +123,7 @@ export const DashboardScreen = ({ navigation }: any) => {
 
   const calculateProgress = () => {
     if (monthlyGoal === 0) return 0;
-    return (MOCK_DATA.currentAmount / monthlyGoal) * 100;
+    return (monthlyRevenue / monthlyGoal) * 100;
   };
 
   const handleGoalCardPress = () => {
@@ -90,28 +139,49 @@ export const DashboardScreen = ({ navigation }: any) => {
           <Text style={styles.headerTitle}>🚕 운행 성과 대시보드</Text>
           <Text style={styles.greeting}>{userName ? `${userName}님, 안전운행 하세요!` : '오늘도 안전운행 하세요!'}</Text>
         </View>
-        {/* Streak Badge */}
-        {streakData.currentStreak > 0 && (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>🔥 {streakData.currentStreak}일 연속</Text>
-          </View>
-        )}
+        
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            {/* Streak Badge */}
+            {streakData.currentStreak > 0 && (
+            <View style={[styles.streakBadge, { marginRight: 12 }]}>
+                <Text style={styles.streakText}>🔥 {streakData.currentStreak}일 연속</Text>
+            </View>
+            )}
+
+            {/* Settings Button */}
+            <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => setSettingsModalVisible(true)}
+            >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Smart Daily Goal Card (Touchable for Direct Manipulation) */}
         <TouchableOpacity activeOpacity={0.9} onPress={handleGoalCardPress}>
-          <DailyGoalCard data={dailyGoalData} />
+          <DailyGoalCard 
+            data={dailyGoalData} 
+          />
         </TouchableOpacity>
 
-        {/* Total Revenue Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
+        {/* Trend Analysis Chart */}
+        <TrendChartCard />
+
+        {/* Total Revenue Card (Clickable for History) */}
+        <TouchableOpacity 
+          style={styles.card} 
+          activeOpacity={0.7}
+          onPress={() => setHistoryModalVisible(true)}
+        >
+          <View style={[styles.cardHeader, { justifyContent: 'space-between' }]}>
             <Text style={styles.cardLabel}>💰 이번 달 총 수입</Text>
+            <Text style={{ fontSize: 16, color: '#999' }}>📄</Text>
           </View>
-          <Text style={styles.mainValue}>{formatCurrency(MOCK_DATA.totalRevenue)} 원</Text>
-          <Text style={styles.trendText}>전 기간 대비 +{MOCK_DATA.totalRevenueTrend}%</Text>
-        </View>
+          <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)} 원</Text>
+          <Text style={styles.trendText}>누적 총 수입: {formatCurrency(totalRevenue)} 원</Text>
+        </TouchableOpacity>
 
         {/* Stats Grid */}
         <View style={styles.gridContainer}>
@@ -150,9 +220,9 @@ export const DashboardScreen = ({ navigation }: any) => {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => showAlert('알림', '운행 시작 기능은 준비 중입니다.')}
+        onPress={() => setInputModalVisible(true)}
       >
-        <Text style={styles.fabText}>운행 시작 🚀</Text>
+        <Text style={styles.fabText}>+ 수입 입력</Text>
       </TouchableOpacity>
       
       <CustomAlert 
@@ -160,6 +230,23 @@ export const DashboardScreen = ({ navigation }: any) => {
         title={alertConfig.title}
         message={alertConfig.message}
         onClose={() => setAlertVisible(false)}
+      />
+
+      <RevenueInputModal
+        visible={isInputModalVisible}
+        onClose={() => setInputModalVisible(false)}
+        onConfirm={handleRevenueConfirm}
+      />
+
+      <RevenueHistoryModal
+        visible={isHistoryModalVisible}
+        onClose={() => setHistoryModalVisible(false)}
+      />
+      
+      <SettingsModal
+        visible={isSettingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+        onLogout={handleLogout}
       />
     </View>
   );
@@ -299,5 +386,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  settingsButton: {
+    padding: 8,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    marginLeft: 4,
+  },
+  settingsIcon: {
+    fontSize: 20,
   },
 });

@@ -20,6 +20,7 @@ export const CustomAlert = ({
   message, 
   onConfirm, 
   confirmText = '확인',
+  onCancel,
   onClose 
 }: CustomAlertProps) => {
   return (
@@ -38,67 +39,94 @@ export const CustomAlert = ({
                 <Text style={styles.message}>{message}</Text>
               </View>
               
-              <TouchableOpacity 
-                style={styles.confirmButton} 
-                onPress={() => {
-                  if (onConfirm) onConfirm();
-                  onClose();
-                }}
-              >
-                <Text style={styles.confirmButtonText}>{confirmText}</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  );
-};
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dimmed background
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertContainer: {
-    width: width * 0.85,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    overflow: 'hidden',
-  },
-  contentContainer: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  confirmButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+                <View style={styles.buttonContainer}>
+                  {onCancel && (
+                    <TouchableOpacity 
+                      style={[styles.button, styles.cancelButton]} 
+                      onPress={onCancel}
+                    >
+                      <Text style={styles.cancelButtonText}>취소</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  <TouchableOpacity 
+                    style={[styles.button, styles.confirmButton, onCancel && { flex: 1 }]} 
+                    onPress={() => {
+                      if (onConfirm) onConfirm();
+                      onClose(); // Auto-close on confirm too
+                    }}
+                  >
+                    <Text style={styles.confirmButtonText}>{confirmText}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dimmed background
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    alertContainer: {
+      width: width * 0.85,
+      backgroundColor: 'white',
+      borderRadius: 20,
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      overflow: 'hidden',
+    },
+    contentContainer: {
+      padding: 24,
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.colors.primary,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 16,
+      color: '#555',
+      textAlign: 'center',
+      lineHeight: 24,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: '#EEE',
+    },
+    button: {
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: 1,
+    },
+    confirmButton: {
+      backgroundColor: theme.colors.primary,
+    },
+    cancelButton: {
+      backgroundColor: '#FFF',
+    },
+    confirmButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    cancelButtonText: {
+      color: '#999',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });
