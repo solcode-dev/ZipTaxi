@@ -10,34 +10,56 @@ import {
 } from 'react-native';
 import { theme } from '@theme/index';
 
-import auth, { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+// 중앙 집중식 Firebase 서비스 레이어에서 필요한 기능을 가져옵니다.
+import { firebaseAuth, firebaseDb, getServerTimestamp } from '../lib/firebase';
+// Firebase SDK에서 직접 필요한 타입이나 함수가 있다면 가져옵니다.
+import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 
 import { CustomAlert } from '../components/CustomAlert';
 
+/**
+ * [회원가입 화면 컴포넌트]
+ * 새로운 사용자를 등록하고 초기 프로필 정보를 Firestore에 저장합니다.
+ */
 export const SignupScreen = ({ navigation }: any) => {
-  const [name, setName] = useState('');
-  const [id, setId] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState(''); // 사용자 이름 상태
+  const [id, setId] = useState(''); // 희망 아이디 상태
+  const [password, setPassword] = useState(''); // 비밀번호 상태
+  const [confirmPassword, setConfirmPassword] = useState(''); // 비밀번호 확인 상태
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 비밀번호 표시 여부
+  const [loading, setLoading] = useState(false); // 가입 처리 중 상태
 
-  // Custom Alert State
+  // 커스텀 알림창 상태 관리
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', onConfirm: undefined as undefined | (() => void), confirmText: '확인' });
+  const [alertConfig, setAlertConfig] = useState({ 
+    title: '', 
+    message: '', 
+    onConfirm: undefined as undefined | (() => void), 
+    confirmText: '확인' 
+  });
 
+  /**
+   * @description 알림창을 띄우는 편의 함수
+   */
   const showAlert = (title: string, message: string, onConfirm?: () => void, confirmText = '확인') => {
     setAlertConfig({ title, message, onConfirm, confirmText });
     setAlertVisible(true);
   };
 
+  /**
+   * [회원가입 처리 함수]
+   * 1. 폼 유효성 검사
+   * 2. Firebase Auth를 통한 계정 생성
+   * 3. Firestore에 사용자 기본 정보 저장
+   */
   const handleSignup = async () => {
-    // Basic validation
+    // 1단계: 필수 입력값 확인
     if (!name || !id || !password || !confirmPassword) {
       showAlert('알림', '모든 항목을 입력해주세요.');
       return;
     }
+    
+    // 2단계: 비밀번호 일치 여부 확인
     if (password !== confirmPassword) {
       showAlert('오류', '비밀번호가 일치하지 않습니다.');
       return;
@@ -45,32 +67,40 @@ export const SignupScreen = ({ navigation }: any) => {
     
     setLoading(true);
     try {
-      // Firebase Auth (Create User)
-      // Append dummy domain to allow "ID-only" signup with Firebase Email Auth
+      // 기사님들의 아이디를 이메일 형식으로 변환 (Firebase 인증 요구사항 대응)
       const emailForAuth = `${id}@ziptaxi.com`;
       
-      // Use modular syntax
-      const userCredential = await createUserWithEmailAndPassword(auth(), emailForAuth, password);
+      // 3단계: Firebase 인증 계정 생성
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, emailForAuth, password);
       const user = userCredential.user;
 
-      // Firestore (Save User Data)
-      // Use modular syntax for Firestore as well to prevent further warnings
-      const db = firestore();
-      await db.collection('users').doc(user.uid).set({
+      // 4단계: Firestore에 사용자 프로필 정보 저장
+      await firebaseDb.collection('users').doc(user.uid).set({
         name: name,
         username: id,
         email: emailForAuth,
-        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected to use firestore.FieldValue.serverTimestamp()
+        createdAt: getServerTimestamp(), // 서버 시간을 기준으로 생성일 저장
         role: 'driver',
+        // 수익 관련 초기 데이터 세팅
+        totalRevenue: 0,
+        todayRevenue: 0,
+        monthlyRevenue: 0,
+        monthlyGoal: 0,
       });
 
       setLoading(false);
-      showAlert('가입 완료', '회원가입이 성공적으로 완료되었습니다!', () => navigation.goBack(), '로그인하러 가기');
+      showAlert(
+        '가입 완료', 
+        '회원가입이 성공적으로 완료되었습니다!', 
+        () => navigation.goBack(), 
+        '로그인하러 가기'
+      );
 
     } catch (error: any) {
       setLoading(false);
       let errorMessage = '회원가입 중 오류가 발생했습니다.';
       
+      // Firebase 에러 코드에 따른 한국어 메시지 대응
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = '이미 사용 중인 아이디입니다.';
       } else if (error.code === 'auth/invalid-email') {
@@ -87,13 +117,14 @@ export const SignupScreen = ({ navigation }: any) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* 헤더 섹션: 안내 문구 */}
       <Text style={styles.headerTitle}>회원가입</Text>
       <Text style={styles.headerSubtitle}>
         ZipTaxi와 함께{'\n'}수익 관리를 시작해보세요.
       </Text>
 
       <View style={styles.form}>
-        {/* Name Input */}
+        {/* 이름 입력 필드 */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>이름</Text>
           <TextInput
@@ -105,7 +136,7 @@ export const SignupScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* ID Input */}
+        {/* 아이디 입력 필드 */}
         <View style={styles.inputContainer}>
             <Text style={styles.label}>아이디</Text>
             <TextInput
@@ -118,7 +149,7 @@ export const SignupScreen = ({ navigation }: any) => {
             />
         </View>
 
-        {/* Password Input */}
+        {/* 비밀번호 입력 필드 */}
         <View style={styles.inputContainer}>
             <Text style={styles.label}>비밀번호</Text>
             <View style={styles.passwordContainer}>
@@ -133,7 +164,7 @@ export const SignupScreen = ({ navigation }: any) => {
             </View>
         </View>
 
-        {/* Password Confirm Input */}
+        {/* 비밀번호 확인 입력 필드 및 눈 아이콘 버튼 */}
         <View style={styles.inputContainer}>
             <Text style={styles.label}>비밀번호 확인</Text>
             <View style={styles.passwordContainer}>
@@ -146,18 +177,19 @@ export const SignupScreen = ({ navigation }: any) => {
                     secureTextEntry={!isPasswordVisible}
                 />
                 <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  style={styles.eyeButton}
+                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                 >
-                <Text style={{color: theme.colors.text.secondary, fontWeight:'bold'}}>
+                <Text style={styles.eyeIconText}>
                     {isPasswordVisible ? '🙈' : '👁️'}
                 </Text>
                 </TouchableOpacity>
             </View>
         </View>
 
+        {/* 가입하기 버튼 */}
         <TouchableOpacity 
-            style={[styles.signupButton, loading && { opacity: 0.7 }]} 
+            style={[styles.signupButton, loading && styles.signupButtonDisabled]} 
             onPress={handleSignup}
             disabled={loading}
         >
@@ -168,6 +200,7 @@ export const SignupScreen = ({ navigation }: any) => {
         
       </View>
 
+      {/* 커스텀 알림 컴포넌트 */}
       <CustomAlert 
           visible={alertVisible}
           title={alertConfig.title}
@@ -256,4 +289,11 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.large,
     fontWeight: 'bold',
   },
+  eyeIconText: {
+    color: theme.colors.text.secondary,
+    fontWeight: 'bold',
+  },
+  signupButtonDisabled: {
+    opacity: 0.7,
+  }
 });

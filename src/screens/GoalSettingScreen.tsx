@@ -11,68 +11,95 @@ import {
   Keyboard,
 } from 'react-native';
 import { theme } from '../theme';
-import firestore from '@react-native-firebase/firestore';
-import auth from '@react-native-firebase/auth';
+
+// 중앙 집중식 Firebase 서비스 레이어에서 필요한 기능을 가져옵니다.
+import { firebaseAuth, firebaseDb } from '../lib/firebase';
+import { doc, updateDoc } from '@react-native-firebase/firestore';
+
 import { CustomAlert } from '../components/CustomAlert';
 
+/**
+ * [목표 설정 화면 컴포넌트]
+ * 사용자가 월간 목표 수익을 설정하거나 수정할 수 있는 화면입니다.
+ */
 export const GoalSettingScreen = ({ navigation, route }: any) => {
-  // Get initial goal from params if available
+  // 이전 화면(대시보드)에서 전달받은 기존 목표 금액
   const initialGoal = route.params?.initialGoal || 0;
   
-  const [goalAmount, setGoalAmount] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [goalAmount, setGoalAmount] = useState(''); // 입력 중인 숫자값 (문자열 타입으로 관리)
+  const [loading, setLoading] = useState(false); // 저장 처리 중 상태
   
-  // Custom Alert State
+  // 커스텀 알림창 상태 관리
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
 
+  // 초기 로드 시 전달받은 목표 금액 세팅
   useEffect(() => {
     if (initialGoal > 0) {
       setGoalAmount(initialGoal.toString());
     }
   }, [initialGoal]);
 
+  /**
+   * @description 알림창 호출 함수
+   */
   const showAlert = (title: string, message: string) => {
     setAlertConfig({ title, message });
     setAlertVisible(true);
   };
 
+  /**
+   * [숫자 포맷팅 함수]
+   * 숫자를 입력받아 3자리마다 콤마(,)를 추가하여 화면에 보여줍니다.
+   */
   const formatNumber = (num: string) => {
-    // 숫자가 아니면 제거
+    // 숫자 이외의 문자 제거
     const numericValue = num.replace(/[^0-9]/g, '');
-    // 콤마 추가
+    // 천 단위 콤마 추가
     return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
+  /**
+   * [입력 변경 처리 함수]
+   * 쉼표가 이미 포함된 텍스트에서 숫자만 추출하여 상태값에 저장합니다.
+   */
   const handleInputChange = (text: string) => {
-    // Keep only numbers
     const numericValue = text.replace(/[^0-9]/g, '');
     setGoalAmount(numericValue);
   };
 
+  /**
+   * [목표 저장 함수]
+   * 입력된 목표 금액을 Firebase Firestore에 저장하고 이전 화면으로 돌아갑니다.
+   */
   const handleSave = async () => {
-    if (!goalAmount || parseInt(goalAmount) === 0) {
+    // 값 검증: 입력값이 없거나 0인 경우
+    if (!goalAmount || parseInt(goalAmount, 10) === 0) {
       showAlert('알림', '목표 금액을 입력해주세요!');
       return;
     }
 
     setLoading(true);
     try {
-      const user = auth().currentUser;
+      const user = firebaseAuth.currentUser;
       if (user) {
-        await firestore().collection('users').doc(user.uid).update({
-          monthlyGoal: parseInt(goalAmount),
+        // Firestore의 해당 사용자 문서 참조 생성
+        const userRef = doc(firebaseDb, 'users', user.uid);
+        
+        // 목표 금액(monthlyGoal) 필드 업데이트
+        await updateDoc(userRef, {
+          monthlyGoal: parseInt(goalAmount, 10),
         });
         
         setLoading(false);
-        // Go back to Dashboard
+        // 저장 성공 시 이전 화면(대시보드)으로 이동
         navigation.goBack();
       } else {
         setLoading(false);
         showAlert('오류', '로그인 정보가 없습니다.');
       }
     } catch (error) {
-      console.error(error);
+      console.error('목표 저장 에러:', error);
       setLoading(false);
       showAlert('오류', '저장 중 문제가 발생했습니다. 다시 시도해주세요.');
     }
@@ -86,11 +113,13 @@ export const GoalSettingScreen = ({ navigation, route }: any) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
           
+          {/* 상단 헤더: 제목 및 안내 문구 */}
           <View style={styles.header}>
             <Text style={styles.title}>이번 달 목표 수입 설정</Text>
             <Text style={styles.subtitle}>사장님, 이번 달에는 얼마를 벌고 싶으신가요?</Text>
           </View>
 
+          {/* 입력 센션: 목표 금액 입력 필드 */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>목표 금액</Text>
             <View style={styles.inputWrapper}>
@@ -108,10 +137,12 @@ export const GoalSettingScreen = ({ navigation, route }: any) => {
             <Text style={styles.helperText}>언제든 다시 수정할 수 있어요. 편하게 입력해주세요.</Text>
           </View>
 
-          <View style={{ flex: 1 }} />
+          {/* 중앙 여백 확보 */}
+          <View style={styles.spacer} />
 
+          {/* 하단 저장 버튼 */}
           <TouchableOpacity 
-            style={[styles.saveButton, loading && { opacity: 0.7 }]}
+            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={loading}
           >
@@ -123,6 +154,7 @@ export const GoalSettingScreen = ({ navigation, route }: any) => {
         </View>
       </TouchableWithoutFeedback>
 
+      {/* 알림창 컴포넌트 */}
       <CustomAlert 
         visible={alertVisible}
         title={alertConfig.title}
@@ -192,6 +224,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#888',
   },
+  spacer: {
+    flex: 1,
+  },
   saveButton: {
     width: '100%',
     backgroundColor: theme.colors.primary,
@@ -200,10 +235,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 4,
     marginBottom: 20,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   saveButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
 });

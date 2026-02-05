@@ -1,33 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { theme } from '../theme';
+import { useWeeklyRevenue } from '../hooks/useWeeklyRevenue';
 
-// Mock Data for Weekly Trend (Revenue vs Expense)
-const weeklyData = [
-  { value: 250000, label: '월', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 50000, frontColor: '#FF6B6B' }, // Expense
-
-  { value: 320000, label: '화', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 80000, frontColor: '#FF6B6B' },
-
-  { value: 210000, label: '수', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 40000, frontColor: '#FF6B6B' },
-
-  { value: 380000, label: '목', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 120000, frontColor: '#FF6B6B' },
-
-  { value: 450000, label: '금', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 90000, frontColor: '#FF6B6B' },
-
-  { value: 520000, label: '토', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 100000, frontColor: '#FF6B6B' },
-
-  { value: 150000, label: '일', frontColor: theme.colors.primary, spacing: 2, labelTextStyle: { color: '#666' } },
-  { value: 30000, frontColor: '#FF6B6B' },
-];
-
+/**
+ * [주간 수입 트렌드 차트 카드]
+ * 이번 주의 요일별 수입 변화를 막대 그래프로 보여줍니다.
+ * 실제 Firestore 데이터를 기반으로 수치와 그래프가 실시간 업데이트됩니다.
+ */
 export const TrendChartCard = () => {
+  // 실데이터를 가져오는 커스텀 훅 사용
+  const { chartData, loading, maxVal } = useWeeklyRevenue();
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -38,32 +23,44 @@ export const TrendChartCard = () => {
             <Text style={styles.legendText}>수입</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: '#FF6B6B' }]} />
+            <View style={[styles.dot, styles.expenseDot]} />
             <Text style={styles.legendText}>지출</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.chartContainer}>
-        <BarChart
-          data={weeklyData}
-          barWidth={12}
-          spacing={24}
-          roundedTop
-          roundedBottom
-          hideRules
-          xAxisThickness={1}
-          yAxisThickness={0}
-          yAxisTextStyle={{ color: '#999', fontSize: 10 }}
-          noOfSections={4}
-          maxValue={600000}
-          height={180}
-          width={280} // Adjust based on screen width if needed
-        />
+        {loading ? (
+          // 데이터 로딩 중 표시
+          <View style={styles.loadingWrapper}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>차트 데이터를 분석 중입니다...</Text>
+          </View>
+        ) : (
+          // 실제 막대 그래프 렌더링
+          <BarChart
+            data={chartData}
+            barWidth={12}
+            spacing={24}
+            roundedTop
+            roundedBottom
+            hideRules
+            xAxisThickness={1}
+            yAxisThickness={0}
+            yAxisTextStyle={styles.yAxisText}
+            noOfSections={4}
+            maxValue={maxVal} // 데이터에 따른 가변 높이 세팅
+            height={180}
+            width={280}
+          />
+        )}
       </View>
 
       <Text style={styles.insightText}>
-        💡 이번 주는 <Text style={{fontWeight: 'bold'}}>금요일</Text> 순수익이 가장 좋네요!
+        {loading ? '데이터를 집계하고 있습니다.' : 
+         chartData.some(d => d.value > 0) 
+         ? '💡 이번 주는 운행 성과가 실시간으로 반영되고 있습니다!' 
+         : '💡 이번 주 첫 수입을 입력하고 그래프를 완성해보세요!'}
       </Text>
     </View>
   );
@@ -106,6 +103,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 4,
   },
+  expenseDot: {
+    backgroundColor: '#FF6B6B',
+  },
   legendText: {
     fontSize: 12,
     color: '#666',
@@ -114,6 +114,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    minHeight: 180,
+  },
+  // 로딩 상태 스타일
+  loadingWrapper: {
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#999',
   },
   insightText: {
     fontSize: 14,
@@ -123,4 +135,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     textAlign: 'center',
   },
+  yAxisText: {
+    color: '#999',
+    fontSize: 10,
+  }
 });

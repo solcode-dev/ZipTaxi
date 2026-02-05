@@ -1,29 +1,44 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
-import auth from '@react-native-firebase/auth';
-// import { theme } from '../theme';
+
+// 중앙 집중식 Firebase 서비스 레이어에서 인증 인스턴스를 가져옵니다.
+import { firebaseAuth } from '../lib/firebase';
 import { CustomAlert } from './CustomAlert';
 
 const { height } = Dimensions.get('window');
 
 interface SettingsModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onLogout: () => void;
+  visible: boolean; // 모달 표시 여부
+  onClose: () => void; // 모달 닫기 콜백
+  onLogout: () => void; // 로그아웃 성공 시 콜백
 }
 
+/**
+ * [설정 모달 컴포넌트]
+ * 사용자의 계정 정보를 보여주고 로그아웃 기능을 제공합니다.
+ * 앱의 메인 화면 우측 상단 기어 아이콘을 통해 진입합니다.
+ */
 export const SettingsModal = ({ visible, onClose, onLogout }: SettingsModalProps) => {
-  const user = auth().currentUser;
+  // 현재 로그인된 사용자의 정보를 서비스 레이어를 통해 가져옵니다.
+  const user = firebaseAuth.currentUser;
+  
+  // 로그아웃 확인 알림창 상태
   const [alertVisible, setAlertVisible] = useState(false);
 
+  /**
+   * @description 로그아웃 버튼을 눌렀을 때 확인창을 띄웁니다.
+   */
   const handleLogoutPress = () => {
     setAlertVisible(true);
   };
 
+  /**
+   * @description 로그아웃을 최종 승인했을 때 실행됩니다.
+   */
   const confirmLogout = () => {
     setAlertVisible(false);
-    onClose();
-    onLogout();
+    onClose(); // 모달을 닫고
+    onLogout(); // 상위 컴포넌트(Dashboard)의 로그아웃 로직을 실행합니다.
   };
 
   return (
@@ -33,14 +48,16 @@ export const SettingsModal = ({ visible, onClose, onLogout }: SettingsModalProps
       animationType="fade"
       onRequestClose={onClose}
     >
+      {/* 배경 오버레이 (클릭 시 닫힘) */}
       <TouchableOpacity 
         style={styles.overlay} 
         activeOpacity={1} 
         onPress={onClose}
       >
+        {/* 모달 실제 콘텐츠 영역 */}
         <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
           
-          {/* Header */}
+          {/* 헤더 섹션: 제목 및 닫기 버튼 */}
           <View style={styles.headerBar}>
             <Text style={styles.headerTitle}>설정</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -48,17 +65,17 @@ export const SettingsModal = ({ visible, onClose, onLogout }: SettingsModalProps
             </TouchableOpacity>
           </View>
 
-          {/* User Info Section */}
+          {/* 계정 정보 섹션: 로그인된 사용자의 이메일을 보여줍니다. */}
           <View style={styles.section}>
             <Text style={styles.label}>계정 정보</Text>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>이메일</Text>
-              <Text style={styles.infoValue}>{user?.email || '이메일 정보 없음'}</Text>
+              <Text style={styles.infoLabel}>아이디(이메일)</Text>
+              <Text style={styles.infoValue}>{user?.email || '정보 없음'}</Text>
             </View>
           </View>
 
-          {/* Actions Section */}
-          <View style={[styles.section, { marginTop: 'auto', marginBottom: 40 }]}>
+          {/* 하단 실행 섹션: 로그아웃 및 앱 버전 표시 */}
+          <View style={styles.bottomSection}>
             <TouchableOpacity 
               style={styles.logoutButton}
               onPress={handleLogoutPress}
@@ -69,7 +86,7 @@ export const SettingsModal = ({ visible, onClose, onLogout }: SettingsModalProps
             <Text style={styles.versionText}>앱 버전 1.0.0</Text>
           </View>
 
-          {/* Logout Confirmation Alert */}
+          {/* 로그아웃 최종 확인용 알림창 */}
           <CustomAlert 
             visible={alertVisible}
             title="로그아웃"
@@ -96,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: height * 0.45, // Less height than other modals
+    height: height * 0.45,
     padding: 24,
     width: '100%',
   },
@@ -120,6 +137,10 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  bottomSection: {
+    marginTop: 'auto',
+    marginBottom: 40,
   },
   label: {
     fontSize: 14,
