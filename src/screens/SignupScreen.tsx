@@ -16,12 +16,13 @@ import { firebaseAuth, firebaseDb, getServerTimestamp } from '../lib/firebase';
 import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 
 import { CustomAlert } from '../components/CustomAlert';
+import type { SignupScreenProps } from '../types/navigation';
 
 /**
  * [회원가입 화면 컴포넌트]
  * 새로운 사용자를 등록하고 초기 프로필 정보를 Firestore에 저장합니다.
  */
-export const SignupScreen = ({ navigation }: any) => {
+export const SignupScreen = ({ navigation }: SignupScreenProps) => {
   const [name, setName] = useState(''); // 사용자 이름 상태
   const [id, setId] = useState(''); // 희망 아이디 상태
   const [password, setPassword] = useState(''); // 비밀번호 상태

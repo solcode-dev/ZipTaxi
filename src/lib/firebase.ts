@@ -14,6 +14,18 @@ export const firebaseAuth = auth();
 // 데이터베이스(Firestore) 인스턴스 초기화
 export const firebaseDb = firestore();
 
+/**
+ * [에뮬레이터 연결]
+ * FIREBASE_EMULATOR 환경 변수가 설정되어 있으면 로컬 에뮬레이터에 연결합니다.
+ * Docker 컨테이너 내부에서 격리된 DB를 사용할 때 활성화됩니다.
+ */
+const EMULATOR_HOST = process.env.FIREBASE_EMULATOR_HOST || 'localhost';
+
+if (process.env.FIREBASE_EMULATOR === 'true') {
+  firebaseAuth.useEmulator(`http://${EMULATOR_HOST}:9099`);
+  firebaseDb.useEmulator(EMULATOR_HOST, 8080);
+}
+
 // Firestore에서 사용하는 유틸리티 함수들을 익스포트하여 일관된 사용을 유도합니다.
 export const { FieldValue, Timestamp } = firestore;
 

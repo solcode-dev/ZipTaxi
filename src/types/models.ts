@@ -1,23 +1,35 @@
-export interface Revenue {
+/** 수입원(결제 수단) 타입 */
+export type RevenueSource = 'kakao' | 'card' | 'cash' | 'other';
+
+/** Firestore 수입 기록 문서 (users/{uid}/revenues/{id}) */
+export interface RevenueRecord {
   id: string;
-  userId: string;
   amount: number;
-  paymentMethod: 'cash' | 'card' | 'kakao' | 'uber';
-  timestamp: Date;
+  source: RevenueSource;
+  dateStr: string; // YYYY-MM-DD
+  timestamp: { toDate(): Date; toMillis(): number };
   note?: string;
-  createdAt: Date;
 }
 
-export interface MonthlyGoal {
-  id: string;
-  userId: string;
-  year: number;
-  month: number;
-  targetAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
+/** Firestore 사용자 문서 (users/{uid}) */
+export interface UserDocument {
+  name: string;
+  username: string;
+  email: string;
+  role: 'driver';
+  createdAt: any;
+  totalRevenue: number;
+  todayRevenue: number;
+  monthlyRevenue: number;
+  monthlyGoal: number;
+  lastRevenueDate?: string;
+  currentStreak: number;
+  maxStreak: number;
+  freezeCount: number;
+  lastGoalDate?: string;
 }
 
+/** 대시보드 통계 (계산 결과) */
 export interface DashboardStats {
   today: number;
   thisWeek: number;

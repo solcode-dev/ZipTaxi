@@ -1,0 +1,14 @@
+services:
+  ziptaxi:
+    build: .
+    stdin_open: true  # docker attach support (-i)
+    tty: true         # allocate a pseudo-TTY (-t)
+    ports:
+      - "9099:9099"   # Firebase Auth emulator
+      - "8080:8080"   # Firestore emulator
+      - "4000:4000"   # Emulator Suite UI
+    env_file:
+      - .env
+    environment:
+      - FIREBASE_EMULATOR=true
+    # No volume mounts — source files and DB live only inside the container

@@ -15,13 +15,14 @@ import { CustomAlert } from '../components/CustomAlert';
 
 // 중앙 집중식 Firebase 서비스 레이어에서 인증 인스턴스를 가져옵니다.
 import { firebaseAuth } from '../lib/firebase';
+import type { LoginScreenProps } from '../types/navigation';
 
 /**
  * [로그인 화면 컴포넌트]
  * 사용자의 아이디(이메일 기반)와 비밀번호를 입력받아 로그인을 처리합니다.
  * 글자 크기 조절 기능(시인성 개선)을 포함하고 있습니다.
  */
-export const LoginScreen = ({ navigation }: any) => {
+export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [email, setEmail] = useState(''); // 아이디 입력 상태
   const [password, setPassword] = useState(''); // 비밀번호 입력 상태
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 비밀번호 표시 여부

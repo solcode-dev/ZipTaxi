@@ -16,6 +16,9 @@ import { DailyGoalCard } from '../components/DailyGoalCard';
 import { useStreakCalculator } from '../hooks/useStreakCalculator';
 import { TrendChartCard } from '../components/TrendChartCard';
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
+import { formatCurrency } from '../utils/formatUtils';
+import type { DashboardScreenProps } from '../types/navigation';
+import type { RevenueSource } from '../types/models';
 
 const { width } = Dimensions.get('window');
 
@@ -24,7 +27,7 @@ const { width } = Dimensions.get('window');
  * 사용자의 수익 현황, 목표 달성률, 연속 달성 기록 등을 종합적으로 보여줍니다.
  * 실시간 데이터 업데이트와 수익 입력 기능을 포함합니다.
  */
-export const DashboardScreen = ({ navigation }: any) => {
+export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
   const [userName, setUserName] = useState(''); // 사용자 이름
   const [monthlyGoal, setMonthlyGoal] = useState(0); // 이번 달 수입 목표
   
@@ -90,7 +93,7 @@ export const DashboardScreen = ({ navigation }: any) => {
    * [수입 입력 처리]
    * 입력 모달에서 수입을 입력하면 DB에 저장하고 성공 여부를 처리합니다.
    */
-  const handleRevenueConfirm = async (amount: number, source: any) => {
+  const handleRevenueConfirm = async (amount: number, source: RevenueSource) => {
       const success = await addRevenue(amount, source);
       if (!success) {
           showAlert('오류', '저장에 실패했습니다.');
@@ -118,13 +121,6 @@ export const DashboardScreen = ({ navigation }: any) => {
       return () => unsubscribe();
     }
   }, []);
-
-  /**
-   * @description 숫자를 천 단위 콤마 형식으로 변환합니다.
-   */
-  const formatCurrency = (amount: number) => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
 
   /**
    * @description 이번 달 목표 달성률을 계산합니다 (0 ~ 100).

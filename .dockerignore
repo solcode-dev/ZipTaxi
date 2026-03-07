@@ -1,0 +1,23 @@
+node_modules
+npm-debug.log
+
+# Native build artifacts
+android/.gradle
+android/app/build
+android/.kotlin
+ios/Pods
+ios/build
+DerivedData
+
+# Environment secrets
+.env
+
+# Git
+.git
+
+# IDE
+.idea
+.vscode
+
+# Testing output
+coverage

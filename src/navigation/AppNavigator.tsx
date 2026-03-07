@@ -9,13 +9,7 @@ import { SignupScreen } from '../screens/SignupScreen';
 
 import { GoalSettingScreen } from '../screens/GoalSettingScreen';
 
-// Define types for navigation
-export type RootStackParamList = {
-  Login: undefined;
-  Dashboard: undefined;
-  Signup: undefined;
-  GoalSetting: { initialGoal: number } | undefined;
-};
+import type { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

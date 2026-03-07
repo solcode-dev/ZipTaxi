@@ -17,12 +17,14 @@ import { firebaseAuth, firebaseDb } from '../lib/firebase';
 import { doc, updateDoc } from '@react-native-firebase/firestore';
 
 import { CustomAlert } from '../components/CustomAlert';
+import { formatNumberInput, parseNumericInput } from '../utils/formatUtils';
+import type { GoalSettingScreenProps } from '../types/navigation';
 
 /**
  * [목표 설정 화면 컴포넌트]
  * 사용자가 월간 목표 수익을 설정하거나 수정할 수 있는 화면입니다.
  */
-export const GoalSettingScreen = ({ navigation, route }: any) => {
+export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps) => {
   // 이전 화면(대시보드)에서 전달받은 기존 목표 금액
   const initialGoal = route.params?.initialGoal || 0;
   
@@ -49,23 +51,11 @@ export const GoalSettingScreen = ({ navigation, route }: any) => {
   };
 
   /**
-   * [숫자 포맷팅 함수]
-   * 숫자를 입력받아 3자리마다 콤마(,)를 추가하여 화면에 보여줍니다.
-   */
-  const formatNumber = (num: string) => {
-    // 숫자 이외의 문자 제거
-    const numericValue = num.replace(/[^0-9]/g, '');
-    // 천 단위 콤마 추가
-    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  };
-
-  /**
    * [입력 변경 처리 함수]
    * 쉼표가 이미 포함된 텍스트에서 숫자만 추출하여 상태값에 저장합니다.
    */
   const handleInputChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, '');
-    setGoalAmount(numericValue);
+    setGoalAmount(parseNumericInput(text));
   };
 
   /**
@@ -128,7 +118,7 @@ export const GoalSettingScreen = ({ navigation, route }: any) => {
                 placeholder="금액을 입력해 주세요"
                 placeholderTextColor={theme.colors.text.placeholder}
                 keyboardType="numeric"
-                value={formatNumber(goalAmount)}
+                value={formatNumberInput(goalAmount)}
                 onChangeText={handleInputChange}
                 autoFocus={true}
               />
