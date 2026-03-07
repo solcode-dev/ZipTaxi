@@ -10,10 +10,7 @@ import {
 } from 'react-native';
 import { theme } from '@theme/index';
 
-// 중앙 집중식 Firebase 서비스 레이어에서 필요한 기능을 가져옵니다.
 import { firebaseAuth, firebaseDb, getServerTimestamp } from '../lib/firebase';
-// Firebase SDK에서 직접 필요한 타입이나 함수가 있다면 가져옵니다.
-import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 
 import { CustomAlert } from '../components/CustomAlert';
 import type { SignupScreenProps } from '../types/navigation';
@@ -78,18 +75,15 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
       // 아이디 중복 확인 (usernames 룩업 테이블)
       const usernameDoc = await firebaseDb.collection('usernames').doc(id).get();
       if (usernameDoc.data()) {
-        setLoading(false);
         showAlert('오류', '이미 사용 중인 아이디입니다.');
         return;
       }
 
-      // 3단계: Firebase 인증 계정 생성 (실제 이메일 사용)
-      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      const user = userCredential.user;
+      // Firebase Auth 계정 생성 (실제 이메일 사용)
+      const { user } = await firebaseAuth.createUserWithEmailAndPassword(email, password);
 
-      // 4단계: Firestore에 사용자 프로필 + 아이디 룩업 테이블 동시 저장
+      // Firestore: 사용자 프로필 + 아이디 룩업 테이블 원자적 저장
       const batch = firebaseDb.batch();
-
       batch.set(firebaseDb.collection('users').doc(user.uid), {
         name,
         username: id,
@@ -105,36 +99,21 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
         monthlyDrivingMinutes: 0,
         monthlyDistanceKm: 0,
       });
-
-      // usernames/{id} → 로그인·비밀번호찾기 시 아이디로 이메일을 조회하는 룩업 테이블
       batch.set(firebaseDb.collection('usernames').doc(id), { email });
-
       await batch.commit();
 
-      setLoading(false);
-      showAlert(
-        '가입 완료', 
-        '회원가입이 성공적으로 완료되었습니다!', 
-        () => navigation.goBack(), 
-        '로그인하러 가기'
-      );
-
+      showAlert('가입 완료', '회원가입이 완료되었습니다!', () => navigation.goBack(), '로그인하러 가기');
     } catch (error: any) {
+      const errorMap: Record<string, string> = {
+        'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
+        'auth/invalid-email': '올바른 이메일 주소를 입력해주세요.',
+        'auth/weak-password': '비밀번호는 6자리 이상이어야 합니다.',
+      };
+      const message = errorMap[error.code] ?? '회원가입 중 오류가 발생했습니다.';
+      if (!errorMap[error.code]) console.error(error);
+      showAlert('오류', message);
+    } finally {
       setLoading(false);
-      let errorMessage = '회원가입 중 오류가 발생했습니다.';
-      
-      // Firebase 에러 코드에 따른 한국어 메시지 대응
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = '이미 사용 중인 이메일입니다.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = '올바른 이메일 주소를 입력해주세요.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = '비밀번호는 6자리 이상이어야 합니다.';
-      } else {
-          console.error(error);
-      }
-
-      showAlert('오류', errorMessage);
     }
   };
 
@@ -161,15 +140,15 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
 
         {/* 아이디 입력 필드 */}
         <View style={styles.inputContainer}>
-            <Text style={styles.label}>아이디</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="사용하실 아이디를 입력하세요"
-                placeholderTextColor={theme.colors.text.placeholder}
-                value={id}
-                onChangeText={setId}
-                autoCapitalize="none"
-            />
+          <Text style={styles.label}>아이디</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="사용하실 아이디를 입력하세요"
+            placeholderTextColor={theme.colors.text.placeholder}
+            value={id}
+            onChangeText={setId}
+            autoCapitalize="none"
+          />
         </View>
 
         {/* 이메일 입력 필드 */}
@@ -188,50 +167,45 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
 
         {/* 비밀번호 입력 필드 */}
         <View style={styles.inputContainer}>
-            <Text style={styles.label}>비밀번호</Text>
-            <View style={styles.passwordContainer}>
-                <TextInput
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="비밀번호"
-                    placeholderTextColor={theme.colors.text.placeholder}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!isPasswordVisible}
-                />
-            </View>
+          <Text style={styles.label}>비밀번호</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[styles.input, styles.passwordInput]}
+              placeholder="비밀번호"
+              placeholderTextColor={theme.colors.text.placeholder}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!isPasswordVisible}
+            />
+          </View>
         </View>
 
-        {/* 비밀번호 확인 입력 필드 및 눈 아이콘 버튼 */}
+        {/* 비밀번호 확인 입력 필드 */}
         <View style={styles.inputContainer}>
-            <Text style={styles.label}>비밀번호 확인</Text>
-            <View style={styles.passwordContainer}>
-                <TextInput
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="비밀번호를 한 번 더 입력하세요"
-                    placeholderTextColor={theme.colors.text.placeholder}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!isPasswordVisible}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                >
-                <Text style={styles.eyeIconText}>
-                    {isPasswordVisible ? '🙈' : '👁️'}
-                </Text>
-                </TouchableOpacity>
-            </View>
+          <Text style={styles.label}>비밀번호 확인</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[styles.input, styles.passwordInput]}
+              placeholder="비밀번호를 한 번 더 입력하세요"
+              placeholderTextColor={theme.colors.text.placeholder}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!isPasswordVisible}
+            />
+            <TouchableOpacity style={styles.eyeButton} onPress={() => setIsPasswordVisible(v => !v)}>
+              <Text style={styles.eyeIconText}>{isPasswordVisible ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 가입하기 버튼 */}
-        <TouchableOpacity 
-            style={[styles.signupButton, loading && styles.signupButtonDisabled]} 
-            onPress={handleSignup}
-            disabled={loading}
+        <TouchableOpacity
+          style={[styles.signupButton, loading && styles.signupButtonDisabled]}
+          onPress={handleSignup}
+          disabled={loading}
         >
           <Text style={styles.signupButtonText}>
-              {loading ? '가입 처리 중...' : '가입하기'}
+            {loading ? '가입 처리 중...' : '가입하기'}
           </Text>
         </TouchableOpacity>
         
