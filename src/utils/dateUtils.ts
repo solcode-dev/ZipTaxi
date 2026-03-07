@@ -1,4 +1,4 @@
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /**
  * Date 객체를 YYYY-MM-DD 형식 문자열로 변환합니다.
