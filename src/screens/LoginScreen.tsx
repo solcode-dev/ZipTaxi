@@ -10,11 +10,9 @@ import {
 } from 'react-native';
 import { theme } from '@theme/index';
 
-// 공통 알림 컴포넌트
 import { CustomAlert } from '../components/CustomAlert';
-
-// 중앙 집중식 Firebase 서비스 레이어에서 인증 인스턴스를 가져옵니다.
 import { firebaseAuth } from '../lib/firebase';
+import { signInWithSocial } from '../lib/socialAuth';
 import type { LoginScreenProps } from '../types/navigation';
 
 /**
@@ -67,6 +65,17 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
    * [로그인 실행 함수]
    * 입력된 아이디와 비밀번호로 Firebase 인증을 시도합니다.
    */
+  const handleSocialLogin = async (provider: 'kakao' | 'naver') => {
+    setLoading(true);
+    try {
+      await signInWithSocial(provider);
+      // 로그인 성공 시 onAuthStateChanged가 자동으로 Dashboard로 이동시킵니다.
+    } catch (error: any) {
+      setLoading(false);
+      showAlert('로그인 실패', error.message ?? '소셜 로그인에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
   const handleLogin = async () => {
     // 입력 값 검증
     if (!email || !password) {
@@ -203,15 +212,17 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
         {/* 소셜 로그인 섹션 (추후 구현 예정) */}
         <View style={styles.socialContainer}>
-            <TouchableOpacity 
-                style={[styles.socialButton, { backgroundColor: theme.colors.social.kakao }]}
-                onPress={() => showAlert('알림', '준비 중인 기능입니다.')}
+            <TouchableOpacity
+                style={[styles.socialButton, { backgroundColor: theme.colors.social.kakao }, loading && styles.socialButtonDisabled]}
+                onPress={() => handleSocialLogin('kakao')}
+                disabled={loading}
             >
                 <Text style={[styles.socialButtonText, styles.blackText]}>카카오 로그인</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-                style={[styles.socialButton, { backgroundColor: theme.colors.social.naver }]}
-                onPress={() => showAlert('알림', '준비 중인 기능입니다.')}
+            <TouchableOpacity
+                style={[styles.socialButton, { backgroundColor: theme.colors.social.naver }, loading && styles.socialButtonDisabled]}
+                onPress={() => handleSocialLogin('naver')}
+                disabled={loading}
             >
                 <Text style={[styles.socialButtonText, styles.whiteText]}>네이버 로그인</Text>
             </TouchableOpacity>
@@ -407,6 +418,9 @@ const styles = StyleSheet.create({
   },
   loginButtonDisabled: {
     opacity: 0.7,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   highlightSignup: {
     fontWeight: 'bold',
