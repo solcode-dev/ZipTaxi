@@ -99,7 +99,7 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
         monthlyDrivingMinutes: 0,
         monthlyDistanceKm: 0,
       });
-      batch.set(firebaseDb.collection('usernames').doc(id), { email });
+      batch.set(firebaseDb.collection('usernames').doc(id), { email, uid: user.uid });
       await batch.commit();
 
       showAlert('가입 완료', '회원가입이 완료되었습니다!', () => navigation.goBack(), '로그인하러 가기');

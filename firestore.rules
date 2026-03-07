@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── usernames 룩업 테이블 ───────────────────────────────────────────────
+    // 로그인·비밀번호찾기는 미인증 상태에서도 아이디로 이메일을 조회해야 하므로 읽기는 공개.
+    // 쓰기는 본인 계정의 문서만 가능 (uid 필드 = 인증된 uid).
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.email == request.auth.token.email;
+      allow update, delete: if request.auth != null
+                             && resource.data.uid == request.auth.uid;
+    }
+
+    // ─── 사용자 문서 ─────────────────────────────────────────────────────────
+    // 본인 문서만 읽기·쓰기 가능.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // 수익 서브컬렉션 — 본인만 접근
+      match /revenues/{revenueId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // 지출 서브컬렉션 — 본인만 접근
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+  }
+}
