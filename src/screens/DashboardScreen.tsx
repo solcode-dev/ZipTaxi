@@ -16,9 +16,11 @@ import { DailyGoalCard } from '../components/DailyGoalCard';
 import { useStreakCalculator } from '../hooks/useStreakCalculator';
 import { TrendChartCard } from '../components/TrendChartCard';
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
+import { useExpenseTracker } from '../hooks/useExpenseTracker';
+import { ExpenseInputModal } from '../components/ExpenseInputModal';
 import { formatCurrency } from '../utils/formatUtils';
 import type { DashboardScreenProps } from '../types/navigation';
-import type { RevenueSource } from '../types/models';
+import type { RevenueSource, ExpenseCategory } from '../types/models';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +35,9 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
   
   // 수입 추적 커스텀 훅을 사용하여 실시간 수익 데이터를 가져옵니다.
   const { totalRevenue, todayRevenue, monthlyRevenue, addRevenue } = useRevenueTracker();
+
+  // 지출 추적 커스텀 훅
+  const { monthlyExpense, addExpense } = useExpenseTracker();
 
   // 이번 달 남은 일수와 현재 수익을 바탕으로 오늘 목표치를 계산합니다.
   const dailyGoalData = useDailyGoalCalculator(
@@ -64,6 +69,7 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
   const [isInputModalVisible, setInputModalVisible] = useState(false);
+  const [isExpenseModalVisible, setExpenseModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isSettingsModalVisible, setSettingsModalVisible] = useState(false);
 
@@ -97,6 +103,13 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
       const success = await addRevenue(amount, source);
       if (!success) {
           showAlert('오류', '저장에 실패했습니다.');
+      }
+  };
+
+  const handleExpenseConfirm = async (amount: number, category: ExpenseCategory) => {
+      const success = await addExpense(amount, category);
+      if (!success) {
+          showAlert('오류', '지출 저장에 실패했습니다.');
       }
   };
 
@@ -187,6 +200,10 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
           </View>
           <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)} 원</Text>
           <Text style={styles.trendText}>누적 총 수입: {formatCurrency(totalRevenue)} 원</Text>
+          <View style={styles.expenseSummaryRow}>
+            <Text style={styles.netProfitText}>순이익: {formatCurrency(monthlyRevenue - monthlyExpense)} 원</Text>
+            <Text style={styles.expenseText}>이달 지출: {formatCurrency(monthlyExpense)} 원</Text>
+          </View>
         </TouchableOpacity>
 
         {/* 시간당/Km당 효율 통계 그리드 (Mock 데이터 포함) */}
@@ -222,8 +239,16 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
         <View style={styles.screenBottomSpacer} /> 
       </ScrollView>
 
+      {/* 지출 입력 FAB */}
+      <TouchableOpacity
+        style={styles.fabExpense}
+        onPress={() => setExpenseModalVisible(true)}
+      >
+        <Text style={styles.fabText}>- 지출 입력</Text>
+      </TouchableOpacity>
+
       {/* 수입 입력을 위한 플로팅 액션 버튼 (FAB) */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => setInputModalVisible(true)}
       >
@@ -242,6 +267,12 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
         visible={isInputModalVisible}
         onClose={() => setInputModalVisible(false)}
         onConfirm={handleRevenueConfirm}
+      />
+
+      <ExpenseInputModal
+        visible={isExpenseModalVisible}
+        onClose={() => setExpenseModalVisible(false)}
+        onConfirm={handleExpenseConfirm}
       />
 
       <RevenueHistoryModal
@@ -401,10 +432,39 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  fabExpense: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    backgroundColor: '#E53935',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    shadowColor: '#E53935',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   fabText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  expenseSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  netProfitText: {
+    fontSize: 13,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  expenseText: {
+    fontSize: 13,
+    color: '#E53935',
+    fontWeight: '600',
   },
   settingsButton: {
     padding: 8,
