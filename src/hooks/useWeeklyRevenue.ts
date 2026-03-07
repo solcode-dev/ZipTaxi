@@ -4,6 +4,17 @@ import { collection, query, where, onSnapshot } from '@react-native-firebase/fir
 import { theme } from '../theme';
 import { toDateStr, getMondayOfWeek } from '../utils/dateUtils';
 
+const LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+
+function buildDailyMap(docs: any[]): Record<string, number> {
+    const map: Record<string, number> = {};
+    docs.forEach((doc) => {
+        const d = doc.data();
+        map[d.dateStr] = (map[d.dateStr] || 0) + (d.amount || 0);
+    });
+    return map;
+}
+
 /**
  * [주간 수입/지출 데이터 조회 훅]
  * 이번 주(월요일 ~ 일요일)의 일별 수입·지출 합계를 실시간으로 집계하여
@@ -14,9 +25,7 @@ export const useWeeklyRevenue = () => {
     const [dailyExpense, setDailyExpense] = useState<Record<string, number>>({});
     const [revenueFired, setRevenueFired] = useState(false);
     const [expenseFired, setExpenseFired] = useState(false);
-    const [maxVal, setMaxVal] = useState(100000);
 
-    // 이번 주 월요일 — 세션 동안 안정적으로 유지
     const monday = useMemo(() => getMondayOfWeek(), []);
     const startStr = useMemo(() => toDateStr(monday), [monday]);
     const endStr = useMemo(() => {
@@ -26,6 +35,10 @@ export const useWeeklyRevenue = () => {
     }, [monday]);
 
     useEffect(() => {
+        // 주가 바뀌어 effect가 재실행되면 loading 상태로 되돌림
+        setRevenueFired(false);
+        setExpenseFired(false);
+
         const user = firebaseAuth.currentUser;
         if (!user) {
             setRevenueFired(true);
@@ -45,31 +58,29 @@ export const useWeeklyRevenue = () => {
             where('dateStr', '<=', endStr)
         );
 
-        const revenueUnsub = onSnapshot(revenueQuery, (snapshot) => {
-            const map: Record<string, number> = {};
-            snapshot.docs.forEach((doc: any) => {
-                const d = doc.data();
-                map[d.dateStr] = (map[d.dateStr] || 0) + (d.amount || 0);
-            });
-            setDailyRevenue(map);
-            setRevenueFired(true);
-        }, (error) => {
-            console.error('주간 수입 차트 로드 에러:', error);
-            setRevenueFired(true);
-        });
+        const revenueUnsub = onSnapshot(
+            revenueQuery,
+            (snapshot) => {
+                setDailyRevenue(buildDailyMap(snapshot.docs));
+                setRevenueFired(true);
+            },
+            (error) => {
+                console.error('주간 수입 차트 로드 에러:', error);
+                setRevenueFired(true);
+            }
+        );
 
-        const expenseUnsub = onSnapshot(expenseQuery, (snapshot) => {
-            const map: Record<string, number> = {};
-            snapshot.docs.forEach((doc: any) => {
-                const d = doc.data();
-                map[d.dateStr] = (map[d.dateStr] || 0) + (d.amount || 0);
-            });
-            setDailyExpense(map);
-            setExpenseFired(true);
-        }, (error) => {
-            console.error('주간 지출 차트 로드 에러:', error);
-            setExpenseFired(true);
-        });
+        const expenseUnsub = onSnapshot(
+            expenseQuery,
+            (snapshot) => {
+                setDailyExpense(buildDailyMap(snapshot.docs));
+                setExpenseFired(true);
+            },
+            (error) => {
+                console.error('주간 지출 차트 로드 에러:', error);
+                setExpenseFired(true);
+            }
+        );
 
         return () => {
             revenueUnsub();
@@ -80,36 +91,32 @@ export const useWeeklyRevenue = () => {
     const loading = !revenueFired || !expenseFired;
 
     const chartData = useMemo(() => {
-        const labels = ['월', '화', '수', '목', '금', '토', '일'];
         const formatted: any[] = [];
-        let currentMax = 50000;
-
         for (let i = 0; i < 7; i++) {
             const date = new Date(monday);
             date.setDate(monday.getDate() + i);
             const dStr = toDateStr(date);
-            const revenue = dailyRevenue[dStr] || 0;
-            const expense = dailyExpense[dStr] || 0;
 
             formatted.push({
-                value: revenue,
-                label: labels[i],
+                value: dailyRevenue[dStr] || 0,
+                label: LABELS[i],
                 frontColor: theme.colors.primary,
                 spacing: 2,
                 labelTextStyle: { color: '#666' },
             });
             formatted.push({
-                value: expense,
+                value: dailyExpense[dStr] || 0,
                 frontColor: '#FF6B6B',
             });
-
-            if (revenue > currentMax) currentMax = revenue;
-            if (expense > currentMax) currentMax = expense;
         }
-
-        setMaxVal(Math.ceil(currentMax / 50000) * 50000 + 50000);
         return formatted;
     }, [dailyRevenue, dailyExpense, monday]);
+
+    const maxVal = useMemo(() => {
+        const allValues = [50000, ...Object.values(dailyRevenue), ...Object.values(dailyExpense)];
+        const peak = Math.max(...allValues);
+        return Math.ceil(peak / 50000) * 50000 + 50000;
+    }, [dailyRevenue, dailyExpense]);
 
     return { chartData, loading, maxVal };
 };
