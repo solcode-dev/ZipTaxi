@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { firebaseDb, firebaseAuth } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from '@react-native-firebase/firestore';
 import { theme } from '../theme';
+import { toDateStr, getMondayOfWeek } from '../utils/dateUtils';
 
 /**
  * [주간 수입 데이터 조회 훅]
@@ -22,16 +23,9 @@ export const useWeeklyRevenue = () => {
 
         /**
          * 1. 이번 주의 시작일(월요일) 계산
-         * 자바스크립트 Date 객체를 사용하여 현재 날짜의 월요일 0시 0분 0초를 구합니다.
          */
-        const now = new Date();
-        const day = now.getDay(); // 0(일) ~ 6(토)
-        // 월요일이 주 시작이므로 조정 (일요일이면 -6, 그외에는 1-day 만큼 이동)
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(now.setDate(diff));
-        monday.setHours(0, 0, 0, 0);
-
-        const startStr = monday.toISOString().split('T')[0];
+        const monday = getMondayOfWeek();
+        const startStr = toDateStr(monday);
 
         /**
          * 2. Firestore 쿼리 실행
@@ -61,7 +55,7 @@ export const useWeeklyRevenue = () => {
                 // 각 요일의 날짜 계산
                 const date = new Date(monday);
                 date.setDate(monday.getDate() + i);
-                const dStr = date.toISOString().split('T')[0];
+                const dStr = toDateStr(date);
                 const revenue = dailyMap[dStr] || 0;
 
                 // [수입 막대]

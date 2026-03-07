@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
 import { theme } from '../theme';
 import { CustomAlert } from './CustomAlert';
+import type { RevenueSource } from '../types/models';
 
 const { height } = Dimensions.get('window');
-
-type RevenueSource = 'kakao' | 'card' | 'other' | null;
 
 interface RevenueInputModalProps {
   visible: boolean;
@@ -15,7 +14,7 @@ interface RevenueInputModalProps {
 
 export const RevenueInputModal = ({ visible, onClose, onConfirm }: RevenueInputModalProps) => {
   const [step, setStep] = useState<'source' | 'amount'>('source');
-  const [source, setSource] = useState<RevenueSource>(null);
+  const [source, setSource] = useState<RevenueSource | null>(null);
   const [amountStr, setAmountStr] = useState('0');
 
   // Alert State
@@ -39,7 +38,7 @@ export const RevenueInputModal = ({ visible, onClose, onConfirm }: RevenueInputM
     onClose();
   };
 
-  const handleSourceSelect = (selected: RevenueSource) => {
+  const handleSourceSelect = (selected: RevenueSource | null) => {
     setSource(selected);
     setStep('amount');
     setAmountStr('0');

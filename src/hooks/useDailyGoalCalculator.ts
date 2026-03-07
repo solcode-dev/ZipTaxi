@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formatCurrency } from '../utils/formatUtils';
 
 export interface DailyGoalResult {
   dailyTarget: number;        // 오늘 목표 금액
@@ -93,14 +94,14 @@ export const useDailyGoalCalculator = (
     let statusMessage = '';
     
     if (isBonusMode) {
-      statusMessage = `🔥 오버런! 현재 ${bonusAmount.toLocaleString()}원 추가 수익 중!`;
+      statusMessage = `🔥 오버런! 현재 ${formatCurrency(bonusAmount)}원 추가 수익 중!`;
     } else if (progressPercent >= 100) {
       statusMessage = "오늘 목표 달성! 수고하셨어요 👏";
     } else if (progressPercent >= 50) {
       statusMessage = "절반 넘었어요! 조금만 더 힘내세요 💪";
     } else {
       const remainingForToday = dailyTarget - currentDailyRevenue;
-      statusMessage = `오늘 ${remainingForToday.toLocaleString()}원만 더 벌면 목표 달성!`;
+      statusMessage = `오늘 ${formatCurrency(remainingForToday)}원만 더 벌면 목표 달성!`;
     }
 
     return {

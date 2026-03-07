@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 // 중앙 집중식 Firebase 서비스 레이어에서 필요한 인스턴스를 가져옵니다.
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
 import { doc, onSnapshot, updateDoc } from '@react-native-firebase/firestore';
+import { getTodayStr } from '../utils/dateUtils';
 
 interface StreakData {
   currentStreak: number; // 현재 연속 달성 일수
@@ -69,8 +70,8 @@ export const useStreakCalculator = (
   ) => {
     // 오늘 날짜 문자열 생성 (로그 비교용)
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    const todayStr = today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0);
+    const todayStr = getTodayStr();
     
     // 1단계: 이미 오늘 달성 기록이 저장되어 있다면 중복 업데이트 방지
     if (data.lastGoalDate === todayStr) return;

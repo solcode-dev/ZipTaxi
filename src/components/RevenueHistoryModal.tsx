@@ -4,28 +4,19 @@ import { theme } from '../theme';
 
 // 중앙 집중식 Firebase 서비스 레이어 및 모듈형 SDK 기능을 가져옵니다.
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  Timestamp, 
-  FirebaseFirestoreTypes 
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  FirebaseFirestoreTypes
 } from '@react-native-firebase/firestore';
 
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
 import { CustomAlert } from './CustomAlert';
-
-/**
- * [수익 내역 데이터 인터페이스]
- */
-interface RevenueRecord {
-  id: string;
-  amount: number;
-  source: 'kakao' | 'card' | 'cash' | 'other';
-  dateStr: string; // YYYY-MM-DD
-  timestamp: Timestamp;
-}
+import { formatCurrency } from '../utils/formatUtils';
+import { formatMonthTitle, getDayLabel } from '../utils/dateUtils';
+import type { RevenueRecord } from '../types/models';
 
 interface RevenueHistoryModalProps {
   visible: boolean; // 모달 표시 여부
@@ -43,8 +34,6 @@ interface SectionData {
   dateKey: string; // 그룹화 기준이 되는 날짜 문자열 (YYYY-MM-DD)
 }
 
-// 요일 표시용 배열
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /**
  * [운행 상세 내역 모달 컴포넌트]
@@ -65,23 +54,6 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
   const [alertVisible, setAlertVisible] = useState(false);
   const [selectedRevenue, setSelectedRevenue] = useState<RevenueRecord | null>(null);
   const [alertType, setAlertType] = useState<'confirm_delete' | 'error'>('confirm_delete');
-
-  // --- 유틸리티 함수 ---
-  
-  /**
-   * @description 현재 선택된 월의 제목을 생성합니다 (예: "2024년 1월")
-   */
-  const formatMonthTitle = (date: Date) => {
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
-  };
-
-  /**
-   * @description 날짜 문자열로부터 요일 포함 라벨을 만듭니다 (예: "1월 20일 (토)")
-   */
-  const getDayLabel = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
-  };
 
   // 이전 달로 이동
   const handlePrevMonth = () => {
@@ -234,7 +206,7 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
   const renderSectionHeader = ({ section: { title, dayTotal } }: { section: SectionData }) => (
     <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.sectionTotal}>{dayTotal.toLocaleString()}원</Text>
+        <Text style={styles.sectionTotal}>{formatCurrency(dayTotal)}원</Text>
     </View>
   );
 
@@ -276,7 +248,7 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
         </View>
         
         <View style={styles.rowRight}>
-          <Text style={styles.amountText}>{item.amount.toLocaleString()}원</Text>
+          <Text style={styles.amountText}>{formatCurrency(item.amount)}원</Text>
           <TouchableOpacity 
             onPress={() => handleDeletePress(item)} 
             style={styles.deleteButton} 
@@ -294,7 +266,7 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
     if (alertType === 'confirm_delete' && selectedRevenue) {
         return {
             title: "내역 삭제",
-            message: `${selectedRevenue.amount.toLocaleString()}원 내역을 삭제하시겠습니까?`,
+            message: `${formatCurrency(selectedRevenue.amount)}원 내역을 삭제하시겠습니까?`,
             confirmText: "삭제",
             showCancel: true,
             onConfirm: handleConfirmAction
@@ -342,7 +314,7 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
         <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>이번 달 총 수입</Text>
-                <Text style={styles.summaryValue}>{monthlyTotal.toLocaleString()}원</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(monthlyTotal)}원</Text>
             </View>
         </View>
 

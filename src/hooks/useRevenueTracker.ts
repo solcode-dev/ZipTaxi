@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 // 중앙 집중식 Firebase 서비스 레이어에서 필요한 인스턴스와 유틸리티를 가져옵니다.
 import { firebaseDb, firebaseAuth, Timestamp } from '../lib/firebase';
-import { doc, collection, runTransaction, onSnapshot } from '@react-native-firebase/firestore';
+import { doc, collection, runTransaction, onSnapshot, updateDoc } from '@react-native-firebase/firestore';
+import { getTodayStr } from '../utils/dateUtils';
 
 export interface RevenueData {
   totalRevenue: number;
@@ -39,7 +40,15 @@ export const useRevenueTracker = () => {
     const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
       if (data) {
-        // Firestore에서 가져온 데이터를 상태값에 저장합니다.
+        const thisMonth = getTodayStr().slice(0, 7);
+        const lastMonth = (data.lastRevenueDate || '').slice(0, 7);
+
+        // 월이 바뀌었고 아직 리셋되지 않은 경우 즉시 초기화
+        if (lastMonth && lastMonth !== thisMonth && data.monthlyRevenue !== 0) {
+          updateDoc(userDocRef, { monthlyRevenue: 0 });
+          return;
+        }
+
         setRevenueData({
           totalRevenue: data.totalRevenue || 0,
           todayRevenue: data.todayRevenue || 0,
@@ -66,7 +75,7 @@ export const useRevenueTracker = () => {
 
     // 오늘 날짜 문자열 생성 (YYYY-MM-DD 형식)
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getTodayStr();
 
     try {
       // 데이터 일관성을 위해 트랜잭션을 사용합니다.
@@ -78,18 +87,25 @@ export const useRevenueTracker = () => {
 
         const userData = userDoc.data() || {};
         
-        // 날짜가 바뀌었는지 확인하여 오늘 수입(todayRevenue)을 초기화할지 결정합니다.
+        // 날짜/월 변경 여부 확인 후 각 합계 초기화
         const lastDate = userData.lastRevenueDate || "";
+        const lastMonth = lastDate.slice(0, 7);
+        const thisMonth = todayStr.slice(0, 7);
+
         let currentTodayRevenue = userData.todayRevenue || 0;
-        
         if (lastDate !== todayStr) {
           currentTodayRevenue = 0;
+        }
+
+        let currentMonthlyRevenue = userData.monthlyRevenue || 0;
+        if (lastMonth && lastMonth !== thisMonth) {
+          currentMonthlyRevenue = 0;
         }
 
         // 새로운 합계 금액 계산
         const newTotal = (userData.totalRevenue || 0) + amount;
         const newToday = currentTodayRevenue + amount;
-        const newMonthly = (userData.monthlyRevenue || 0) + amount; 
+        const newMonthly = currentMonthlyRevenue + amount;
 
         // 1. 개별 수입 내역(Revenue Record) 생성
         transaction.set(newRevenueRef, {
@@ -129,7 +145,7 @@ export const useRevenueTracker = () => {
     const revenueDocRef = doc(db, 'users', user.uid, 'revenues', revenueId);
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getTodayStr();
 
     try {
       await runTransaction(db, async (transaction) => {
