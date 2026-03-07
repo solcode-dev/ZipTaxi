@@ -1,8 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import OpenAI from 'openai';
 
 initializeApp();
+
+// OpenAI 인스턴스 — API 키는 Cloud Function 환경변수에만 존재하며 클라이언트에 노출되지 않습니다.
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ─── 타입 ─────────────────────────────────────────────────────────────────────
 
 type SocialProvider = 'kakao' | 'naver';
 
@@ -21,6 +27,19 @@ interface SocialLoginResponse {
   customToken: string;
   profile: SocialProfile;
 }
+
+type AnalysisType = 'weekly' | 'monthly';
+
+interface AnalyzeRevenueRequest {
+  type: AnalysisType;
+  summary: string; // 클라이언트가 미리 포맷한 텍스트 요약
+}
+
+interface AnalyzeRevenueResponse {
+  analysis: string;
+}
+
+// ─── 소셜 로그인 헬퍼 ────────────────────────────────────────────────────────
 
 async function fetchJson(url: string, bearerToken: string): Promise<any> {
   const res = await fetch(url, {
@@ -50,10 +69,11 @@ async function resolveNaver(accessToken: string): Promise<SocialProfile> {
   };
 }
 
+// ─── Cloud Functions ──────────────────────────────────────────────────────────
+
 /**
- * [소셜 로그인 Cloud Function]
- * 클라이언트로부터 Kakao 또는 Naver 액세스 토큰을 받아
- * 각 플랫폼 API로 검증 후 Firebase 커스텀 토큰을 발급합니다.
+ * [소셜 로그인]
+ * Kakao/Naver 액세스 토큰을 검증하고 Firebase 커스텀 토큰을 발급합니다.
  */
 export const socialLogin = onCall<SocialLoginRequest, Promise<SocialLoginResponse>>(
   async (request) => {
@@ -63,17 +83,55 @@ export const socialLogin = onCall<SocialLoginRequest, Promise<SocialLoginRespons
       throw new HttpsError('invalid-argument', 'provider and accessToken are required');
     }
 
-    let profile: SocialProfile;
-
-    if (provider === 'kakao') {
-      profile = await resolveKakao(accessToken);
-    } else if (provider === 'naver') {
-      profile = await resolveNaver(accessToken);
-    } else {
-      throw new HttpsError('invalid-argument', `Unsupported provider: ${provider}`);
-    }
+    const profile =
+      provider === 'kakao' ? await resolveKakao(accessToken) :
+      provider === 'naver' ? await resolveNaver(accessToken) :
+      (() => { throw new HttpsError('invalid-argument', `Unsupported provider: ${provider}`); })();
 
     const customToken = await getAuth().createCustomToken(profile.uid, { provider });
     return { customToken, profile };
+  },
+);
+
+/**
+ * [수익 AI 분석]
+ * 클라이언트로부터 수익 요약 텍스트를 받아 OpenAI로 분석 결과를 반환합니다.
+ * OPENAI_API_KEY는 서버 환경변수에만 존재하며 클라이언트에 노출되지 않습니다.
+ */
+export const analyzeRevenue = onCall<AnalyzeRevenueRequest, Promise<AnalyzeRevenueResponse>>(
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', '로그인이 필요합니다.');
+    }
+
+    const { type, summary } = request.data;
+
+    if (!summary?.trim()) {
+      throw new HttpsError('invalid-argument', 'summary is required');
+    }
+
+    const prompt =
+      type === 'weekly'
+        ? `이번 주 수입 데이터:\n\n${summary}\n\n패턴을 분석하고 다음 주 전략을 조언해주세요.`
+        : `이번 달 수입 데이터:\n\n${summary}\n\n패턴 분석과 목표 달성 전략을 조언해주세요.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            '당신은 개인택시 기사님의 수입 데이터를 분석하는 전문가입니다. ' +
+            '데이터를 바탕으로 구체적인 패턴("수요일 카카오T 수입이 가장 높습니다" 등)을 찾아 ' +
+            '실용적인 조언을 2~3문장으로 제공하세요. 친근하고 격려하는 말투를 사용하세요.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: type === 'weekly' ? 200 : 250,
+      temperature: 0.7,
+    });
+
+    const analysis = response.choices[0].message.content ?? '';
+    return { analysis };
   },
 );
