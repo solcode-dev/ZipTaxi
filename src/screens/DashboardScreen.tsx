@@ -1,102 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { theme } from '../theme';
 
-// 중앙 집중식 Firebase 서비스 레이어에서 필요한 기능을 가져옵니다.
-import { firebaseAuth, firebaseDb } from '../lib/firebase';
-import { doc, onSnapshot } from '@react-native-firebase/firestore';
+import { firebaseAuth } from '../lib/firebase';
 
 import { CustomAlert } from '../components/CustomAlert';
 import { RevenueInputModal } from '../components/RevenueInputModal';
 import { RevenueHistoryModal } from '../components/RevenueHistoryModal';
 import { SettingsModal } from '../components/SettingsModal';
+import { ExpenseInputModal } from '../components/ExpenseInputModal';
+import { DrivingInputModal } from '../components/DrivingInputModal';
 
-import { useDailyGoalCalculator } from '../hooks/useDailyGoalCalculator';
 import { DailyGoalCard } from '../components/DailyGoalCard';
-import { useStreakCalculator } from '../hooks/useStreakCalculator';
 import { TrendChartCard } from '../components/TrendChartCard';
+
+import { useUserDoc } from '../hooks/useUserDoc';
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
 import { useExpenseTracker } from '../hooks/useExpenseTracker';
 import { useDrivingStats } from '../hooks/useDrivingStats';
-import { ExpenseInputModal } from '../components/ExpenseInputModal';
-import { DrivingInputModal } from '../components/DrivingInputModal';
+import { useDailyGoalCalculator } from '../hooks/useDailyGoalCalculator';
+import { useStreakCalculator } from '../hooks/useStreakCalculator';
+
 import { formatCurrency } from '../utils/formatUtils';
 import type { DashboardScreenProps } from '../types/navigation';
 import type { RevenueSource, ExpenseCategory } from '../types/models';
 
 const { width } = Dimensions.get('window');
 
-/**
- * [대시보드 화면 컴포넌트]
- * 사용자의 수익 현황, 목표 달성률, 연속 달성 기록 등을 종합적으로 보여줍니다.
- * 실시간 데이터 업데이트와 수익 입력 기능을 포함합니다.
- */
 export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
-  const [userName, setUserName] = useState(''); // 사용자 이름
-  const [monthlyGoal, setMonthlyGoal] = useState(0); // 이번 달 수입 목표
-  
-  // 수입 추적 커스텀 훅을 사용하여 실시간 수익 데이터를 가져옵니다.
-  const { totalRevenue, todayRevenue, monthlyRevenue, addRevenue } = useRevenueTracker();
+  // --- 데이터 (단일 Firestore 리스너) ---
+  const {
+    userName,
+    monthlyGoal,
+    totalRevenue,
+    todayRevenue,
+    monthlyRevenue,
+    monthlyExpense,
+    monthlyDrivingMinutes,
+    monthlyDistanceKm,
+  } = useUserDoc();
 
-  // 지출 추적 커스텀 훅
-  const { monthlyExpense, addExpense } = useExpenseTracker();
+  // --- 쓰기 전용 훅 ---
+  const { addRevenue } = useRevenueTracker();
+  const { addExpense } = useExpenseTracker();
+  const { addDrivingSession } = useDrivingStats();
 
-  // 운행 효율 커스텀 훅
-  const { monthlyDrivingMinutes, monthlyDistanceKm, addDrivingSession } = useDrivingStats();
-
-  // 효율 지표 계산 (데이터 없으면 null)
+  // --- 파생 계산값 ---
   const netProfit = monthlyRevenue - monthlyExpense;
   const drivingHours = monthlyDrivingMinutes / 60;
   const perHour = drivingHours > 0 ? Math.round(netProfit / drivingHours) : null;
   const perKm = monthlyDistanceKm > 0 ? Math.round(netProfit / monthlyDistanceKm) : null;
+  const progressPct = monthlyGoal > 0 ? (monthlyRevenue / monthlyGoal) * 100 : 0;
 
-  // 이번 달 남은 일수와 현재 수익을 바탕으로 오늘 목표치를 계산합니다.
-  const dailyGoalData = useDailyGoalCalculator(
-    monthlyGoal,
-    monthlyRevenue,
-    todayRevenue
-  );
+  // --- 목표/스트릭 계산 ---
+  const dailyGoalData = useDailyGoalCalculator(monthlyGoal, monthlyRevenue, todayRevenue);
+  const streakData = useStreakCalculator(monthlyGoal, todayRevenue, dailyGoalData.dailyTarget);
 
-  // 현재까지의 연속 기록(Streak)을 계산합니다.
-  const streakData = useStreakCalculator(
-    monthlyGoal,
-    todayRevenue,
-    dailyGoalData.dailyTarget
-  );
+  // --- 알림 상태 (showAlert보다 먼저 선언) ---
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
 
-  // [보상 알림 로직]
-  // 휴무권(FreezeCount)이 증가하면 축하 알림창을 띄워줍니다.
-  const prevFreezeCountRef = React.useRef(streakData.freezeCount);
+  const showAlert = (title: string, message: string) => {
+    setAlertConfig({ title, message });
+    setAlertVisible(true);
+  };
 
+  // --- 스트릭 보상 알림 ---
+  const prevFreezeCountRef = useRef(streakData.freezeCount);
   useEffect(() => {
     if (streakData.freezeCount > prevFreezeCountRef.current) {
       const added = streakData.freezeCount - prevFreezeCountRef.current;
-      showAlert("축하합니다! 🎉", `7일 연속 달성 보상으로\n휴무권 ${added}개를 획득하셨습니다! 🛡️`);
+      showAlert('축하합니다! 🎉', `7일 연속 달성 보상으로\n휴무권 ${added}개를 획득하셨습니다! 🛡️`);
     }
     prevFreezeCountRef.current = streakData.freezeCount;
   }, [streakData.freezeCount]);
-  
-  // 각종 모달 및 알림창 상태 관리
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
+
+  // --- 모달 상태 ---
   const [isInputModalVisible, setInputModalVisible] = useState(false);
   const [isExpenseModalVisible, setExpenseModalVisible] = useState(false);
   const [isDrivingModalVisible, setDrivingModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isSettingsModalVisible, setSettingsModalVisible] = useState(false);
 
-  /**
-   * @description 알림창 호출 함수
-   */
-  const showAlert = (title: string, message: string) => {
-    setAlertConfig({ title, message });
-    setAlertVisible(true);
-  };
-  
-  /**
-   * [로그아웃 처리]
-   * Firebase 인증 세션을 종료하고 로그인 화면으로 이동합니다.
-   */
+  // --- 이벤트 핸들러 ---
   const handleLogout = async () => {
     try {
       await firebaseAuth.signOut();
@@ -107,109 +93,57 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
     }
   };
 
-  /**
-   * [수입 입력 처리]
-   * 입력 모달에서 수입을 입력하면 DB에 저장하고 성공 여부를 처리합니다.
-   */
   const handleRevenueConfirm = async (amount: number, source: RevenueSource) => {
-      const success = await addRevenue(amount, source);
-      if (!success) {
-          showAlert('오류', '저장에 실패했습니다.');
-      }
+    const success = await addRevenue(amount, source);
+    if (!success) showAlert('오류', '저장에 실패했습니다.');
   };
 
   const handleExpenseConfirm = async (amount: number, category: ExpenseCategory) => {
-      const success = await addExpense(amount, category);
-      if (!success) {
-          showAlert('오류', '지출 저장에 실패했습니다.');
-      }
+    const success = await addExpense(amount, category);
+    if (!success) showAlert('오류', '지출 저장에 실패했습니다.');
   };
 
   const handleDrivingConfirm = async (minutes: number, distanceKm: number) => {
-      const success = await addDrivingSession(minutes, distanceKm);
-      if (!success) {
-          showAlert('오류', '운행 기록 저장에 실패했습니다.');
-      }
+    const success = await addDrivingSession(minutes, distanceKm);
+    if (!success) showAlert('오류', '운행 기록 저장에 실패했습니다.');
   };
 
-  /**
-   * [사용자 기본 정보 구독]
-   * 이름, 목표 금액 등 Firestore의 사용자 문서를 실시간으로 감시합니다.
-   */
-  useEffect(() => {
-    const user = firebaseAuth.currentUser;
-    if (user) {
-      const userDocRef = doc(firebaseDb, 'users', user.uid);
-
-      // 실시간 리스너 연결
-      const unsubscribe = onSnapshot(userDocRef, (documentSnapshot) => {
-        const data = documentSnapshot.data();
-        if (data) {
-          setUserName(data.name || '기사님');
-          setMonthlyGoal(data.monthlyGoal || 0);
-        }
-      });
-
-      return () => unsubscribe();
-    }
-  }, []);
-
-  /**
-   * @description 이번 달 목표 달성률을 계산합니다 (0 ~ 100).
-   */
-  const calculateProgress = () => {
-    if (monthlyGoal === 0) return 0;
-    return (monthlyRevenue / monthlyGoal) * 100;
-  };
-
-  /**
-   * @description 목표 설정 카드를 눌렀을 때 목표 수정 화면으로 이동합니다.
-   */
-  const handleGoalCardPress = () => {
-    navigation.navigate('GoalSetting', { initialGoal: monthlyGoal });
-  };
-
+  // --- 렌더 ---
   return (
     <View style={styles.container}>
-      {/* 상단 헤더: 제목 및 기사님 인사말 */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>🚕 운행 성과 대시보드</Text>
-          <Text style={styles.greeting}>{userName ? `${userName}님, 안전운행 하세요!` : '오늘도 안전운행 하세요!'}</Text>
+          <Text style={styles.greeting}>
+            {userName ? `${userName}님, 안전운행 하세요!` : '오늘도 안전운행 하세요!'}
+          </Text>
         </View>
-        
-        <View style={styles.headerRight}>
-            {/* 연속 기록 배지 */}
-            {streakData.currentStreak > 0 && (
-            <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>🔥 {streakData.currentStreak}일 연속</Text>
-            </View>
-            )}
 
-            {/* 설정(기어) 버튼 */}
-            <TouchableOpacity 
-                style={styles.settingsButton}
-                onPress={() => setSettingsModalVisible(true)}
-            >
-                <Text style={styles.settingsIcon}>⚙️</Text>
-            </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {streakData.currentStreak > 0 && (
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakText}>🔥 {streakData.currentStreak}일 연속</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setSettingsModalVisible(true)}
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 오늘 수익 목표 카드 (클릭 시 이동 가능) */}
-        <TouchableOpacity activeOpacity={0.9} onPress={handleGoalCardPress}>
-          <DailyGoalCard 
-            data={dailyGoalData} 
-          />
+        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('GoalSetting', { initialGoal: monthlyGoal })}>
+          <DailyGoalCard data={dailyGoalData} />
         </TouchableOpacity>
 
-        {/* 수입 변화 추이 차트 카드 */}
         <TrendChartCard />
 
-        {/* 이번 달 총 수익 카드 (클릭 시 상세 내역 모달 표시) */}
-        <TouchableOpacity 
-          style={styles.card} 
+        {/* 이번 달 총 수입 */}
+        <TouchableOpacity
+          style={styles.card}
           activeOpacity={0.7}
           onPress={() => setHistoryModalVisible(true)}
         >
@@ -220,12 +154,12 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
           <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)} 원</Text>
           <Text style={styles.trendText}>누적 총 수입: {formatCurrency(totalRevenue)} 원</Text>
           <View style={styles.expenseSummaryRow}>
-            <Text style={styles.netProfitText}>순이익: {formatCurrency(monthlyRevenue - monthlyExpense)} 원</Text>
+            <Text style={styles.netProfitText}>순이익: {formatCurrency(netProfit)} 원</Text>
             <Text style={styles.expenseText}>이달 지출: {formatCurrency(monthlyExpense)} 원</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 운행 효율 통계 */}
+        {/* 운행 효율 */}
         <View style={styles.efficiencyHeader}>
           <Text style={styles.efficiencyTitle}>📊 운행 효율</Text>
           <TouchableOpacity onPress={() => setDrivingModalVisible(true)}>
@@ -259,71 +193,55 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
           </View>
         </View>
 
-        {/* 월 목표 달성률 진행 바 카드 */}
+        {/* 월 목표 달성률 */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>월 목표 달성률</Text>
           <Text style={styles.goalText}>목표: {formatCurrency(monthlyGoal)} 원</Text>
-          
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${Math.min(100, calculateProgress())}%` }]} />
+            <View style={[styles.progressBarFill, { width: `${Math.min(100, progressPct)}%` }]} />
           </View>
-          
           <Text style={styles.progressStatusText}>
-            {Math.round(calculateProgress())}% 달성 (현재 수입 기준)
+            {Math.round(progressPct)}% 달성 (현재 수입 기준)
           </Text>
         </View>
 
-        {/* 스크롤 여백 */}
-        <View style={styles.screenBottomSpacer} /> 
+        <View style={styles.screenBottomSpacer} />
       </ScrollView>
 
-      {/* 지출 입력 FAB */}
-      <TouchableOpacity
-        style={styles.fabExpense}
-        onPress={() => setExpenseModalVisible(true)}
-      >
+      {/* FAB */}
+      <TouchableOpacity style={styles.fabExpense} onPress={() => setExpenseModalVisible(true)}>
         <Text style={styles.fabText}>- 지출 입력</Text>
       </TouchableOpacity>
-
-      {/* 수입 입력을 위한 플로팅 액션 버튼 (FAB) */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setInputModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.fab} onPress={() => setInputModalVisible(true)}>
         <Text style={styles.fabText}>+ 수입 입력</Text>
       </TouchableOpacity>
-      
-      {/* 팝업 모달창들 */}
-      <CustomAlert 
+
+      {/* 모달 */}
+      <CustomAlert
         visible={alertVisible}
         title={alertConfig.title}
         message={alertConfig.message}
         onClose={() => setAlertVisible(false)}
       />
-
       <RevenueInputModal
         visible={isInputModalVisible}
         onClose={() => setInputModalVisible(false)}
         onConfirm={handleRevenueConfirm}
       />
-
       <ExpenseInputModal
         visible={isExpenseModalVisible}
         onClose={() => setExpenseModalVisible(false)}
         onConfirm={handleExpenseConfirm}
       />
-
       <DrivingInputModal
         visible={isDrivingModalVisible}
         onClose={() => setDrivingModalVisible(false)}
         onConfirm={handleDrivingConfirm}
       />
-
       <RevenueHistoryModal
         visible={isHistoryModalVisible}
         onClose={() => setHistoryModalVisible(false)}
       />
-      
       <SettingsModal
         visible={isSettingsModalVisible}
         onClose={() => setSettingsModalVisible(false)}
@@ -389,10 +307,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   cardHeaderBetween: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -418,6 +332,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4CAF50',
     fontWeight: '600',
+  },
+  expenseSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  netProfitText: {
+    fontSize: 13,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  expenseText: {
+    fontSize: 13,
+    color: '#E53935',
+    fontWeight: '600',
+  },
+  efficiencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  efficiencyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+  },
+  addRecordButton: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   gridContainer: {
     flexDirection: 'row',
@@ -494,38 +440,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  efficiencyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  efficiencyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-  },
-  addRecordButton: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  expenseSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  netProfitText: {
-    fontSize: 13,
-    color: '#1565C0',
-    fontWeight: '600',
-  },
-  expenseText: {
-    fontSize: 13,
-    color: '#E53935',
-    fontWeight: '600',
   },
   settingsButton: {
     padding: 8,
