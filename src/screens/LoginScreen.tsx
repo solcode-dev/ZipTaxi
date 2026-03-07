@@ -7,6 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { theme } from '@theme/index';
 
@@ -26,6 +30,12 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 비밀번호 표시 여부
   const [fontScale, setFontScale] = useState(1); // 글자 크기 배율 (1 = 100%)
   const [loading, setLoading] = useState(false); // 로그인 처리 중 상태
+
+  // 비밀번호 찾기 모달 상태
+  const [resetModalVisible, setResetModalVisible] = useState(false);
+  const [resetId, setResetId] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // 커스텀 알림창 상태 관리
   const [alertVisible, setAlertVisible] = useState(false);
@@ -115,6 +125,39 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
     }
   };
 
+  /**
+   * [비밀번호 재설정 이메일 발송]
+   * 아이디를 입력받아 Firebase sendPasswordResetEmail을 호출합니다.
+   */
+  const handleResetPassword = async () => {
+    const trimmed = resetId.trim();
+    if (!trimmed) {
+      showAlert('알림', '아이디를 입력해주세요.');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const emailForAuth = `${trimmed}@ziptaxi.com`;
+      await firebaseAuth.sendPasswordResetEmail(emailForAuth);
+      setResetSent(true);
+    } catch (error: any) {
+      let message = '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.';
+      if (error.code === 'auth/user-not-found') {
+        message = '존재하지 않는 아이디입니다.';
+      }
+      showAlert('오류', message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetModalClose = () => {
+    setResetModalVisible(false);
+    setResetId('');
+    setResetSent(false);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       
@@ -194,7 +237,7 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
                 <Text style={styles.helpLinkText}>아이디 찾기</Text>
             </TouchableOpacity>
             <View style={styles.helpLinkDivider} />
-            <TouchableOpacity onPress={() => showAlert('알림', '준비 중인 기능입니다.')}>
+            <TouchableOpacity onPress={() => setResetModalVisible(true)}>
                 <Text style={styles.helpLinkText}>비밀번호 찾기</Text>
             </TouchableOpacity>
             <View style={styles.helpLinkDivider} />
@@ -228,8 +271,67 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
             </TouchableOpacity>
         </View>
 
+        {/* 비밀번호 찾기 모달 */}
+        <Modal
+          visible={resetModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={handleResetModalClose}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalOverlay}
+          >
+            <View style={styles.modalBox}>
+              {resetSent ? (
+                <>
+                  <Text style={styles.modalTitle}>이메일 발송 완료</Text>
+                  <Text style={styles.modalMessage}>
+                    비밀번호 재설정 링크가 발송되었습니다.{'\n'}
+                    이메일을 확인해주세요.
+                  </Text>
+                  <TouchableOpacity style={styles.modalConfirmButton} onPress={handleResetModalClose}>
+                    <Text style={styles.modalConfirmText}>확인</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.modalTitle}>비밀번호 찾기</Text>
+                  <Text style={styles.modalMessage}>
+                    가입하신 아이디를 입력하시면{'\n'}비밀번호 재설정 링크를 보내드립니다.
+                  </Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="아이디를 입력하세요"
+                    placeholderTextColor={theme.colors.text.placeholder}
+                    value={resetId}
+                    onChangeText={setResetId}
+                    autoCapitalize="none"
+                    autoFocus
+                  />
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity style={styles.modalCancelButton} onPress={handleResetModalClose}>
+                      <Text style={styles.modalCancelText}>취소</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalConfirmButton, resetLoading && styles.modalButtonDisabled]}
+                      onPress={handleResetPassword}
+                      disabled={resetLoading}
+                    >
+                      {resetLoading
+                        ? <ActivityIndicator color={theme.colors.text.inverse} size="small" />
+                        : <Text style={styles.modalConfirmText}>전송</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
         {/* 커스텀 알림 컴포넌트 */}
-        <CustomAlert 
+        <CustomAlert
           visible={alertVisible}
           title={alertConfig.title}
           message={alertConfig.message}
@@ -425,6 +527,79 @@ const styles = StyleSheet.create({
   highlightSignup: {
     fontWeight: 'bold',
     color: theme.colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+  },
+  modalBox: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.xl,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: 'bold',
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.sm,
+  },
+  modalMessage: {
+    fontSize: theme.typography.fontSize.small,
+    color: theme.colors.text.secondary,
+    lineHeight: 20,
+    marginBottom: theme.spacing.lg,
+  },
+  modalInput: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  modalCancelText: {
+    color: theme.colors.text.secondary,
+    fontWeight: '600',
+    fontSize: theme.typography.fontSize.medium,
+  },
+  modalConfirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+  },
+  modalConfirmText: {
+    color: theme.colors.text.inverse,
+    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.medium,
+  },
+  modalButtonDisabled: {
+    opacity: 0.7,
   },
   blackText: {
     color: '#000000',
