@@ -15,7 +15,7 @@ import {
 import { theme } from '@theme/index';
 
 import { CustomAlert } from '../components/CustomAlert';
-import { firebaseAuth } from '../lib/firebase';
+import { firebaseAuth, firebaseDb } from '../lib/firebase';
 import { signInWithSocial } from '../lib/socialAuth';
 import type { LoginScreenProps } from '../types/navigation';
 
@@ -95,9 +95,11 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
     setLoading(true);
     try {
-      // 기사님들의 편의를 위해 아이디만 입력해도 로그인이 가능하도록 뒤에 더미 도메인을 붙여 이메일 형식으로 만듭니다.
-      const emailForAuth = `${email}@ziptaxi.com`;
-      
+      // usernames 룩업 테이블에서 아이디에 매핑된 실제 이메일 조회
+      const usernameDoc = await firebaseDb.collection('usernames').doc(email).get();
+      const usernameData = usernameDoc.data();
+      const emailForAuth = usernameData?.email ?? `${email}@ziptaxi.com`; // 구형 계정 하위 호환
+
       // Firebase 인증 시도
       await firebaseAuth.signInWithEmailAndPassword(emailForAuth, password);
       
@@ -138,15 +140,17 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
     setResetLoading(true);
     try {
-      const emailForAuth = `${trimmed}@ziptaxi.com`;
-      await firebaseAuth.sendPasswordResetEmail(emailForAuth);
+      // usernames 룩업 테이블에서 실제 이메일 조회
+      const usernameDoc = await firebaseDb.collection('usernames').doc(trimmed).get();
+      const realEmail = usernameDoc.data()?.email as string | undefined;
+      if (!realEmail) {
+        showAlert('오류', '존재하지 않는 아이디입니다.');
+        return;
+      }
+      await firebaseAuth.sendPasswordResetEmail(realEmail);
       setResetSent(true);
     } catch (error: any) {
-      let message = '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.';
-      if (error.code === 'auth/user-not-found') {
-        message = '존재하지 않는 아이디입니다.';
-      }
-      showAlert('오류', message);
+      showAlert('오류', '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setResetLoading(false);
     }

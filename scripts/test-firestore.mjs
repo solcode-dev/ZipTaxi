@@ -52,12 +52,19 @@ const userRef = () => db.collection('users').doc(uid);
 async function setup() {
   // 기존 테스트 유저 삭제 후 재생성
   try {
-    const existing = await auth.getUserByEmail('tester@ziptaxi.com');
+    const existing = await auth.getUserByEmail('tester@example.com');
     await auth.deleteUser(existing.uid);
   } catch {}
 
-  const user = await auth.createUser({ email: 'tester@ziptaxi.com', password: 'test1234' });
+  // usernames 룩업 문서 초기화
+  await db.collection('usernames').doc('tester').delete().catch(() => {});
+
+  // 실제 이메일로 생성 (새 회원가입 방식)
+  const user = await auth.createUser({ email: 'tester@example.com', password: 'test1234' });
   uid = user.uid;
+
+  // usernames 룩업 테이블 생성
+  await db.collection('usernames').doc('tester').set({ email: 'tester@example.com' });
 
   await userRef().set({
     name: '테스트기사',
@@ -363,6 +370,17 @@ async function test_월간_리셋_지출() {
   assert('monthlyExpense 리셋 후 50,000 (지난달 지출 초기화)', d.monthlyExpense === 50000, `실제: ${d.monthlyExpense}`);
 }
 
+async function test_usernames_룩업() {
+  console.log('\n📋 [usernames 룩업 테이블]');
+
+  const doc = await db.collection('usernames').doc('tester').get();
+  assert('usernames/tester 문서 존재', !!doc.data());
+  assert('이메일 매핑 정확', doc.data()?.email === 'tester@example.com', `실제: ${doc.data()?.email}`);
+
+  const missing = await db.collection('usernames').doc('nonexistent').get();
+  assert('존재하지 않는 아이디 → data() undefined', !missing.data());
+}
+
 async function test_수익_지출_동시() {
   console.log('\n📋 [수익 + 지출 동시 입력 → 순이익 계산]');
   await cleanup();
@@ -395,6 +413,7 @@ async function run() {
   await test_월간_리셋_수익();
   await test_월간_리셋_지출();
   await test_수익_지출_동시();
+  await test_usernames_룩업();
 
   console.log('\n' + '━'.repeat(50));
   console.log(`\n🏁 결과: ${passed + failed}개 중 ✅ ${passed}개 통과 / ❌ ${failed}개 실패\n`);

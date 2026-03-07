@@ -25,6 +25,7 @@ import type { SignupScreenProps } from '../types/navigation';
 export const SignupScreen = ({ navigation }: SignupScreenProps) => {
   const [name, setName] = useState(''); // 사용자 이름 상태
   const [id, setId] = useState(''); // 희망 아이디 상태
+  const [email, setEmail] = useState(''); // 실제 이메일 (비밀번호 찾기용)
   const [password, setPassword] = useState(''); // 비밀번호 상태
   const [confirmPassword, setConfirmPassword] = useState(''); // 비밀번호 확인 상태
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 비밀번호 표시 여부
@@ -55,8 +56,14 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
    */
   const handleSignup = async () => {
     // 1단계: 필수 입력값 확인
-    if (!name || !id || !password || !confirmPassword) {
+    if (!name || !id || !email || !password || !confirmPassword) {
       showAlert('알림', '모든 항목을 입력해주세요.');
+      return;
+    }
+
+    // 이메일 형식 기본 검증
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAlert('오류', '올바른 이메일 주소를 입력해주세요.');
       return;
     }
     
@@ -68,26 +75,41 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
     
     setLoading(true);
     try {
-      // 기사님들의 아이디를 이메일 형식으로 변환 (Firebase 인증 요구사항 대응)
-      const emailForAuth = `${id}@ziptaxi.com`;
-      
-      // 3단계: Firebase 인증 계정 생성
-      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, emailForAuth, password);
+      // 아이디 중복 확인 (usernames 룩업 테이블)
+      const usernameDoc = await firebaseDb.collection('usernames').doc(id).get();
+      if (usernameDoc.data()) {
+        setLoading(false);
+        showAlert('오류', '이미 사용 중인 아이디입니다.');
+        return;
+      }
+
+      // 3단계: Firebase 인증 계정 생성 (실제 이메일 사용)
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
       const user = userCredential.user;
 
-      // 4단계: Firestore에 사용자 프로필 정보 저장
-      await firebaseDb.collection('users').doc(user.uid).set({
-        name: name,
+      // 4단계: Firestore에 사용자 프로필 + 아이디 룩업 테이블 동시 저장
+      const batch = firebaseDb.batch();
+
+      batch.set(firebaseDb.collection('users').doc(user.uid), {
+        name,
         username: id,
-        email: emailForAuth,
-        createdAt: getServerTimestamp(), // 서버 시간을 기준으로 생성일 저장
+        email,
+        createdAt: getServerTimestamp(),
         role: 'driver',
-        // 수익 관련 초기 데이터 세팅
         totalRevenue: 0,
         todayRevenue: 0,
         monthlyRevenue: 0,
         monthlyGoal: 0,
+        monthlyExpense: 0,
+        todayExpense: 0,
+        monthlyDrivingMinutes: 0,
+        monthlyDistanceKm: 0,
       });
+
+      // usernames/{id} → 로그인·비밀번호찾기 시 아이디로 이메일을 조회하는 룩업 테이블
+      batch.set(firebaseDb.collection('usernames').doc(id), { email });
+
+      await batch.commit();
 
       setLoading(false);
       showAlert(
@@ -103,9 +125,9 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
       
       // Firebase 에러 코드에 따른 한국어 메시지 대응
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = '이미 사용 중인 아이디입니다.';
+        errorMessage = '이미 사용 중인 이메일입니다.';
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = '아이디에 사용할 수 없는 문자가 포함되어 있습니다.';
+        errorMessage = '올바른 이메일 주소를 입력해주세요.';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = '비밀번호는 6자리 이상이어야 합니다.';
       } else {
@@ -148,6 +170,20 @@ export const SignupScreen = ({ navigation }: SignupScreenProps) => {
                 onChangeText={setId}
                 autoCapitalize="none"
             />
+        </View>
+
+        {/* 이메일 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>이메일</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="비밀번호 찾기에 사용할 이메일"
+            placeholderTextColor={theme.colors.text.placeholder}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
         </View>
 
         {/* 비밀번호 입력 필드 */}
