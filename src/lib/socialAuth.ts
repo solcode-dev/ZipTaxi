@@ -1,5 +1,5 @@
 import { login as kakaoLogin } from '@react-native-kakao/user';
-import { NaverLogin } from '@react-native-seoul/naver-login';
+import NaverLogin from '@react-native-seoul/naver-login';
 import functions from '@react-native-firebase/functions';
 import { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } from '@env';
 
@@ -31,23 +31,21 @@ async function getKakaoToken(): Promise<string> {
 }
 
 async function getNaverToken(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    NaverLogin.login(
-      {
-        appName: 'ZipTaxi',
-        consumerKey: NAVER_CLIENT_ID,
-        consumerSecret: NAVER_CLIENT_SECRET,
-        serviceUrlScheme: 'ziptaxi',
-      },
-      (err, token) => {
-        if (err || !token?.accessToken) {
-          reject(new Error(err?.message ?? '네이버 로그인이 취소되었습니다.'));
-        } else {
-          resolve(token.accessToken);
-        }
-      },
-    );
+  NaverLogin.initialize({
+    appName: 'ZipTaxi',
+    consumerKey: NAVER_CLIENT_ID,
+    consumerSecret: NAVER_CLIENT_SECRET,
+    serviceUrlSchemeIOS: 'ziptaxi',
   });
+
+  const result = await NaverLogin.login();
+  if (!result.isSuccess || !result.successResponse?.accessToken) {
+    const msg = result.failureResponse?.isCancel
+      ? '네이버 로그인이 취소되었습니다.'
+      : (result.failureResponse?.message ?? '네이버 로그인에 실패했습니다.');
+    throw new Error(msg);
+  }
+  return result.successResponse.accessToken;
 }
 
 // ─── Cloud Function Exchange ──────────────────────────────────────────────────
