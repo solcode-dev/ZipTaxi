@@ -17,7 +17,9 @@ import { useStreakCalculator } from '../hooks/useStreakCalculator';
 import { TrendChartCard } from '../components/TrendChartCard';
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
 import { useExpenseTracker } from '../hooks/useExpenseTracker';
+import { useDrivingStats } from '../hooks/useDrivingStats';
 import { ExpenseInputModal } from '../components/ExpenseInputModal';
+import { DrivingInputModal } from '../components/DrivingInputModal';
 import { formatCurrency } from '../utils/formatUtils';
 import type { DashboardScreenProps } from '../types/navigation';
 import type { RevenueSource, ExpenseCategory } from '../types/models';
@@ -38,6 +40,15 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
 
   // 지출 추적 커스텀 훅
   const { monthlyExpense, addExpense } = useExpenseTracker();
+
+  // 운행 효율 커스텀 훅
+  const { monthlyDrivingMinutes, monthlyDistanceKm, addDrivingSession } = useDrivingStats();
+
+  // 효율 지표 계산 (데이터 없으면 null)
+  const netProfit = monthlyRevenue - monthlyExpense;
+  const drivingHours = monthlyDrivingMinutes / 60;
+  const perHour = drivingHours > 0 ? Math.round(netProfit / drivingHours) : null;
+  const perKm = monthlyDistanceKm > 0 ? Math.round(netProfit / monthlyDistanceKm) : null;
 
   // 이번 달 남은 일수와 현재 수익을 바탕으로 오늘 목표치를 계산합니다.
   const dailyGoalData = useDailyGoalCalculator(
@@ -70,6 +81,7 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
   const [isInputModalVisible, setInputModalVisible] = useState(false);
   const [isExpenseModalVisible, setExpenseModalVisible] = useState(false);
+  const [isDrivingModalVisible, setDrivingModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isSettingsModalVisible, setSettingsModalVisible] = useState(false);
 
@@ -110,6 +122,13 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
       const success = await addExpense(amount, category);
       if (!success) {
           showAlert('오류', '지출 저장에 실패했습니다.');
+      }
+  };
+
+  const handleDrivingConfirm = async (minutes: number, distanceKm: number) => {
+      const success = await addDrivingSession(minutes, distanceKm);
+      if (!success) {
+          showAlert('오류', '운행 기록 저장에 실패했습니다.');
       }
   };
 
@@ -206,18 +225,37 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
           </View>
         </TouchableOpacity>
 
-        {/* 시간당/Km당 효율 통계 그리드 (Mock 데이터 포함) */}
+        {/* 운행 효율 통계 */}
+        <View style={styles.efficiencyHeader}>
+          <Text style={styles.efficiencyTitle}>📊 운행 효율</Text>
+          <TouchableOpacity onPress={() => setDrivingModalVisible(true)}>
+            <Text style={styles.addRecordButton}>+ 기록 추가</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.gridContainer}>
           <View style={[styles.card, styles.gridCard]}>
             <Text style={styles.cardLabel}>시간당 순수익</Text>
-            <Text style={styles.subValue}>25,000 <Text style={styles.unit}>원</Text></Text>
-            <Text style={styles.trendText}>+6.2%</Text>
+            <Text style={styles.subValue}>
+              {perHour !== null ? formatCurrency(perHour) : '--'}
+              <Text style={styles.unit}> 원</Text>
+            </Text>
+            <Text style={styles.trendText}>
+              {monthlyDrivingMinutes > 0
+                ? `이달 ${Math.floor(monthlyDrivingMinutes / 60)}h ${monthlyDrivingMinutes % 60}m`
+                : '기록 없음'}
+            </Text>
           </View>
 
           <View style={[styles.card, styles.gridCard]}>
             <Text style={styles.cardLabel}>Km당 순수익</Text>
-            <Text style={styles.subValue}>1,200 <Text style={styles.unit}>원/km</Text></Text>
-            <Text style={styles.trendText}>+5.2%</Text>
+            <Text style={styles.subValue}>
+              {perKm !== null ? formatCurrency(perKm) : '--'}
+              <Text style={styles.unit}> 원/km</Text>
+            </Text>
+            <Text style={styles.trendText}>
+              {monthlyDistanceKm > 0 ? `이달 ${monthlyDistanceKm} km` : '기록 없음'}
+            </Text>
           </View>
         </View>
 
@@ -273,6 +311,12 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
         visible={isExpenseModalVisible}
         onClose={() => setExpenseModalVisible(false)}
         onConfirm={handleExpenseConfirm}
+      />
+
+      <DrivingInputModal
+        visible={isDrivingModalVisible}
+        onClose={() => setDrivingModalVisible(false)}
+        onConfirm={handleDrivingConfirm}
       />
 
       <RevenueHistoryModal
@@ -450,6 +494,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  efficiencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  efficiencyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+  },
+  addRecordButton: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   expenseSummaryRow: {
     flexDirection: 'row',

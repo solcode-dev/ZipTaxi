@@ -39,6 +39,9 @@ export interface UserDocument {
   monthlyExpense: number;
   todayExpense: number;
   lastExpenseDate?: string;
+  monthlyDrivingMinutes: number;
+  monthlyDistanceKm: number;
+  lastDrivingDate?: string;
   currentStreak: number;
   maxStreak: number;
   freezeCount: number;
