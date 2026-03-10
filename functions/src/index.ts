@@ -5,8 +5,12 @@ import OpenAI from 'openai';
 
 initializeApp();
 
-// OpenAI 인스턴스 — API 키는 Cloud Function 환경변수에만 존재하며 클라이언트에 노출되지 않습니다.
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// OpenAI 인스턴스 — 함수 호출 시점에 초기화하여 배포 분석 오류 방지
+let openai: OpenAI | null = null;
+const getOpenAI = () => {
+  if (!openai) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return openai;
+};
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -115,7 +119,7 @@ export const analyzeRevenue = onCall<AnalyzeRevenueRequest, Promise<AnalyzeReven
         ? `이번 주 수입 데이터:\n\n${summary}\n\n패턴을 분석하고 다음 주 전략을 조언해주세요.`
         : `이번 달 수입 데이터:\n\n${summary}\n\n패턴 분석과 목표 달성 전략을 조언해주세요.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {

@@ -27,6 +27,7 @@ import type { GoalSettingScreenProps } from '../types/navigation';
 export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps) => {
   // 이전 화면(대시보드)에서 전달받은 기존 목표 금액
   const initialGoal = route.params?.initialGoal || 0;
+  const currentMonth = new Date().getMonth() + 1;
   
   const [goalAmount, setGoalAmount] = useState(''); // 입력 중인 숫자값 (문자열 타입으로 관리)
   const [loading, setLoading] = useState(false); // 저장 처리 중 상태
@@ -105,8 +106,8 @@ export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps)
           
           {/* 상단 헤더: 제목 및 안내 문구 */}
           <View style={styles.header}>
-            <Text style={styles.title}>이번 달 목표 수입 설정</Text>
-            <Text style={styles.subtitle}>사장님, 이번 달에는 얼마를 벌고 싶으신가요?</Text>
+            <Text style={styles.title}>{currentMonth}월 목표 수입 설정</Text>
+            <Text style={styles.subtitle}>사장님, {currentMonth}월에는 얼마를 벌고 싶으신가요?</Text>
           </View>
 
           {/* 입력 센션: 목표 금액 입력 필드 */}
@@ -137,7 +138,7 @@ export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps)
             disabled={loading}
           >
             <Text style={styles.saveButtonText}>
-              {loading ? '저장 중...' : '이 목표로 도전하기 🚀'}
+              {loading ? '저장 중...' : `${currentMonth}월 목표로 설정하기 🚀`}
             </Text>
           </TouchableOpacity>
 

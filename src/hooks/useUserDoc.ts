@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
-import { doc, onSnapshot, updateDoc } from '@react-native-firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc } from '@react-native-firebase/firestore';
 import { getTodayStr } from '../utils/dateUtils';
 
 export interface UserDocState {
@@ -43,7 +43,22 @@ export const useUserDoc = (): UserDocState => {
 
     const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
       const d = snapshot.data();
-      if (!d) return;
+      if (!d) {
+        // 소셜 로그인 등으로 문서가 없는 경우 초기 문서 생성
+        setDoc(userDocRef, {
+          name: user.displayName || '기사님',
+          email: user.email || '',
+          totalRevenue: 0,
+          todayRevenue: 0,
+          monthlyRevenue: 0,
+          monthlyGoal: 0,
+          monthlyExpense: 0,
+          todayExpense: 0,
+          monthlyDrivingMinutes: 0,
+          monthlyDistanceKm: 0,
+        });
+        return;
+      }
 
       const thisMonth = getTodayStr().slice(0, 7);
       const resets: Record<string, number> = {};
@@ -70,14 +85,15 @@ export const useUserDoc = (): UserDocState => {
         return;
       }
 
+      const todayStr = getTodayStr();
       setState({
         userName: d.name || '기사님',
         monthlyGoal: d.monthlyGoal || 0,
         totalRevenue: d.totalRevenue || 0,
-        todayRevenue: d.todayRevenue || 0,
+        todayRevenue: d.lastRevenueDate === todayStr ? (d.todayRevenue || 0) : 0,
         monthlyRevenue: d.monthlyRevenue || 0,
         monthlyExpense: d.monthlyExpense || 0,
-        todayExpense: d.todayExpense || 0,
+        todayExpense: d.lastExpenseDate === todayStr ? (d.todayExpense || 0) : 0,
         monthlyDrivingMinutes: d.monthlyDrivingMinutes || 0,
         monthlyDistanceKm: d.monthlyDistanceKm || 0,
       });

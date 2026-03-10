@@ -11,6 +11,11 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+
+      <meta-data
+        android:name="com.kakao.sdk.AppKey"
+        android:value="ed2afabe5bb966fba54f2a110dc199f1" />
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -23,5 +28,17 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+
+      <activity
+        android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="kakaoed2afabe5bb966fba54f2a110dc199f1" android:host="oauth" />
+        </intent-filter>
+      </activity>
+
     </application>
 </manifest>

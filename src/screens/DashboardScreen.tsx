@@ -136,7 +136,7 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('GoalSetting', { initialGoal: monthlyGoal })}>
-          <DailyGoalCard data={dailyGoalData} />
+          <DailyGoalCard data={dailyGoalData} todayRevenue={todayRevenue} />
         </TouchableOpacity>
 
         <TrendChartCard />
@@ -157,6 +157,14 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
             <Text style={styles.netProfitText}>순이익: {formatCurrency(netProfit)} 원</Text>
             <Text style={styles.expenseText}>이달 지출: {formatCurrency(monthlyExpense)} 원</Text>
           </View>
+        </TouchableOpacity>
+
+        {/* 월간 리포트 링크 */}
+        <TouchableOpacity
+          style={styles.reportButton}
+          onPress={() => navigation.navigate('MonthlyReport')}
+        >
+          <Text style={styles.reportButtonText}>📊 월간 리포트 보기 →</Text>
         </TouchableOpacity>
 
         {/* 운행 효율 */}
@@ -347,6 +355,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#E53935',
     fontWeight: '600',
+  },
+  reportButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  reportButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   efficiencyHeader: {
     flexDirection: 'row',

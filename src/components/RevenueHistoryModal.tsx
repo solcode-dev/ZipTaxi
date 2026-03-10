@@ -1,169 +1,176 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, SectionList } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  SectionList,
+  ScrollView,
+} from 'react-native';
 import { theme } from '../theme';
 
-// 중앙 집중식 Firebase 서비스 레이어 및 모듈형 SDK 기능을 가져옵니다.
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
 import {
   collection,
   query,
   where,
   onSnapshot,
-  FirebaseFirestoreTypes
+  FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
 import { CustomAlert } from './CustomAlert';
 import { formatCurrency } from '../utils/formatUtils';
 import { formatMonthTitle, getDayLabel } from '../utils/dateUtils';
-import type { RevenueRecord } from '../types/models';
+import type { RevenueRecord, RevenueSource } from '../types/models';
+
+// ─── 타입 ────────────────────────────────────────────────────────────────────
+
+type FilterKey = 'all' | RevenueSource;
+
+interface SectionData {
+  title: string;
+  data: RevenueRecord[];
+  dayTotal: number;
+  dateKey: string;
+}
 
 interface RevenueHistoryModalProps {
-  visible: boolean; // 모달 표시 여부
-  onClose: () => void; // 모달 닫기 콜백
+  visible: boolean;
+  onClose: () => void;
 }
 
-/**
- * [섹션 리스트 데이터 구조 인터페이스]
- * 날짜별로 수익 내역을 그룹화하여 보여주기 위한 구조입니다.
- */
-interface SectionData {
-  title: string; // 화면에 표시될 날짜 (예: "1월 20일 (토)")
-  data: RevenueRecord[]; // 해당 날짜의 수익 목록
-  dayTotal: number; // 해당 날짜의 총 수익 합계
-  dateKey: string; // 그룹화 기준이 되는 날짜 문자열 (YYYY-MM-DD)
+// ─── 상수 ────────────────────────────────────────────────────────────────────
+
+const SOURCE_CONFIG: Record<RevenueSource, { label: string; badgeColor: string; textColor: string }> = {
+  kakao: { label: '카카오T',  badgeColor: '#FFE812', textColor: '#3C1E1E' },
+  card:  { label: '카드',     badgeColor: '#E3F2FD', textColor: '#1565C0' },
+  cash:  { label: '현금',     badgeColor: '#E8F5E9', textColor: '#2E7D32' },
+  other: { label: '기타',     badgeColor: '#F5F5F5', textColor: '#666'    },
+};
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all',   label: '전체'   },
+  { key: 'kakao', label: '카카오T' },
+  { key: 'card',  label: '카드'   },
+  { key: 'cash',  label: '현금'   },
+  { key: 'other', label: '기타'   },
+];
+
+// ─── 순수 함수 ────────────────────────────────────────────────────────────────
+
+function buildSections(docs: RevenueRecord[]): SectionData[] {
+  const sorted = [...docs].sort(
+    (a, b) => (b.timestamp?.toMillis() ?? 0) - (a.timestamp?.toMillis() ?? 0),
+  );
+
+  const groups = sorted.reduce<Record<string, RevenueRecord[]>>((acc, item) => {
+    (acc[item.dateStr] ??= []).push(item);
+    return acc;
+  }, {});
+
+  return Object.keys(groups)
+    .sort((a, b) => b.localeCompare(a))
+    .map(dateKey => {
+      const items = groups[dateKey];
+      return {
+        title: getDayLabel(dateKey),
+        dateKey,
+        data: items,
+        dayTotal: items.reduce((sum, item) => sum + item.amount, 0),
+      };
+    });
 }
 
+// ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-/**
- * [운행 상세 내역 모달 컴포넌트]
- * 월별로 운행 수익 내역을 확인하고, 필요 시 내역을 삭제할 수 있습니다.
- */
 export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalProps) => {
   const { deleteRevenue } = useRevenueTracker();
-  
-  // 1. 월 선택 상태 (초기값: 현재 달)
+
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  
-  // 2. 데이터 상태 (섹션 리스트용)
-  const [sections, setSections] = useState<SectionData[]>([]);
-  const [monthlyTotal, setMonthlyTotal] = useState(0); // 이번 달 전체 수익 합계
-  const [loading, setLoading] = useState(false);
+  const [rawDocs, setRawDocs]           = useState<RevenueRecord[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
 
-  // 3. 내역 삭제 관련 상태
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [selectedRevenue, setSelectedRevenue] = useState<RevenueRecord | null>(null);
-  const [alertType, setAlertType] = useState<'confirm_delete' | 'error'>('confirm_delete');
+  const [alertVisible, setAlertVisible]         = useState(false);
+  const [selectedRevenue, setSelectedRevenue]   = useState<RevenueRecord | null>(null);
+  const [alertType, setAlertType]               = useState<'confirm_delete' | 'error'>('confirm_delete');
 
-  // 이전 달로 이동
-  const handlePrevMonth = () => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setCurrentMonth(newDate);
-  };
+  // ── 파생 데이터 ──────────────────────────────────────────────────────────────
 
-  // 다음 달로 이동
-  const handleNextMonth = () => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setCurrentMonth(newDate);
-  };
+  const monthlyTotal = useMemo(
+    () => rawDocs.reduce((sum, d) => sum + d.amount, 0),
+    [rawDocs],
+  );
 
-  /**
-   * [실시간 수익 데이터 구독]
-   * 선택된 월의 시작일부터 말일까지의 데이터를 Firestore에서 실시간으로 가져옵니다.
-   */
+  const filteredDocs = useMemo(
+    () => activeFilter === 'all' ? rawDocs : rawDocs.filter(d => d.source === activeFilter),
+    [rawDocs, activeFilter],
+  );
+
+  const sections = useMemo(() => buildSections(filteredDocs), [filteredDocs]);
+
+  const filteredTotal = useMemo(
+    () => filteredDocs.reduce((sum, d) => sum + d.amount, 0),
+    [filteredDocs],
+  );
+
+  // ── Firestore 구독 ────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    /**
-     * [데이터 가공 로직]
-     * 1. 시간순(최신순) 정렬 / 2. 총 합계 계산 / 3. 날짜별 그룹화 및 섹션 데이터 생성
-     */
-    const processData = (docs: RevenueRecord[]) => {
-      // 1. 역순 정렬 (최신 시간이 상단으로)
-      docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-
-      // 2. 월간 총합 계산
-      const total = docs.reduce((sum, item) => sum + item.amount, 0);
-      setMonthlyTotal(total);
-
-      // 3. 날짜별 그룹화
-      const groups: Record<string, RevenueRecord[]> = {};
-      docs.forEach(item => {
-          if (!groups[item.dateStr]) {
-              groups[item.dateStr] = [];
-          }
-          groups[item.dateStr].push(item);
-      });
-
-      // 4. 날짜 문자열 역순 정렬 (최신 날짜가 상단으로)
-      const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
-
-      // 5. SectionList용 구조로 변환
-      const processedSections: SectionData[] = sortedKeys.map(dateKey => {
-          const dayItems = groups[dateKey];
-          const dayTotal = dayItems.reduce((sum, item) => sum + item.amount, 0);
-          
-          return {
-              title: getDayLabel(dateKey),
-              dateKey: dateKey,
-              data: dayItems,
-              dayTotal: dayTotal,
-          };
-      });
-
-      setSections(processedSections);
-    };
-
     const user = firebaseAuth.currentUser;
     if (!user || !visible) return;
-    
+
     setLoading(true);
 
-    // 해당 월의 범위를 계산합니다 (01일 ~ 마지막일)
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth() + 1;
+    const year    = currentMonth.getFullYear();
+    const month   = currentMonth.getMonth() + 1;
     const lastDay = new Date(year, month, 0).getDate();
-    
-    const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endStr = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+    const pad     = (n: number) => String(n).padStart(2, '0');
+    const startStr = `${year}-${pad(month)}-01`;
+    const endStr   = `${year}-${pad(month)}-${lastDay}`;
 
-    // Firestore 쿼리 생성
     const revenueRef = collection(firebaseDb, 'users', user.uid, 'revenues');
     const q = query(
       revenueRef,
       where('dateStr', '>=', startStr),
-      where('dateStr', '<=', endStr)
+      where('dateStr', '<=', endStr),
     );
 
-    // 실시간 리스너 연결
-    const unsubscribe = onSnapshot(q, 
+    const unsubscribe = onSnapshot(
+      q,
       (snapshot) => {
-        if (!snapshot) {
-            setLoading(false);
-            return;
-        }
-        
         const docs = snapshot.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
           id: doc.id,
           ...doc.data(),
         })) as RevenueRecord[];
-        
-        processData(docs);
+        setRawDocs(docs);
         setLoading(false);
       },
       (error) => {
-          console.error("수익 내역 조회 에러:", error);
-          setLoading(false);
-      }
+        console.error('수익 내역 조회 에러:', error);
+        setLoading(false);
+      },
     );
 
     return () => unsubscribe();
   }, [visible, currentMonth]);
 
-  /**
-   * [내역 삭제 처리]
-   * 삭제 버튼 클릭 시 확인 알림창을 띄우고, 승인 시 DB에서 삭제합니다.
-   */
+  // ── 월 이동 ───────────────────────────────────────────────────────────────────
+
+  const goToPrevMonth = () => {
+    setActiveFilter('all');
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setActiveFilter('all');
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  };
+
+  // ── 삭제 ──────────────────────────────────────────────────────────────────────
+
   const handleDeletePress = (item: RevenueRecord) => {
     setSelectedRevenue(item);
     setAlertType('confirm_delete');
@@ -172,13 +179,11 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
 
   const handleConfirmAction = async () => {
     if (alertType === 'confirm_delete' && selectedRevenue) {
-      // useRevenueTracker 훅을 통해 DB 삭제 및 합계 금액 차감 처리
       const success = await deleteRevenue(
-        selectedRevenue.id, 
-        selectedRevenue.amount, 
-        selectedRevenue.dateStr
+        selectedRevenue.id,
+        selectedRevenue.amount,
+        selectedRevenue.dateStr,
       );
-      
       if (success) {
         setAlertVisible(false);
         setSelectedRevenue(null);
@@ -193,65 +198,40 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
   const handleAlertClose = () => {
     setAlertVisible(false);
     setTimeout(() => {
-        setSelectedRevenue(null);
-        setAlertType('confirm_delete');
+      setSelectedRevenue(null);
+      setAlertType('confirm_delete');
     }, 300);
   };
 
-  // --- 렌더링 함수들 ---
+  // ── 렌더링 ────────────────────────────────────────────────────────────────────
 
-  /**
-   * @description 섹션 헤더 (날짜 및 일일 합계 표시)
-   */
   const renderSectionHeader = ({ section: { title, dayTotal } }: { section: SectionData }) => (
     <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.sectionTotal}>{formatCurrency(dayTotal)}원</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTotal}>{formatCurrency(dayTotal)}원</Text>
     </View>
   );
 
-  /**
-   * @description 개별 수익 내역 항목 (시간, 결제수단, 금액 표시)
-   */
   const renderItem = ({ item }: { item: RevenueRecord }) => {
-    // 입력 시간 포맷팅 (예: 오전 10:30)
-    const timeStr = item.timestamp?.toDate().toLocaleTimeString('ko-KR', { 
-      hour: '2-digit', minute: '2-digit', hour12: true 
+    const timeStr = item.timestamp?.toDate().toLocaleTimeString('ko-KR', {
+      hour: '2-digit', minute: '2-digit', hour12: true,
     });
-    
-    // 결제수단별 배지 스타일 및 텍스트 설정
-    let sourceLabel = '기타';
-    let sourceColor = '#F5F5F5';
-    let labelColor = '#666';
-
-    if (item.source === 'kakao') {
-      sourceLabel = '카카오T';
-      sourceColor = '#FFE812';
-      labelColor = '#3C1E1E';
-    } else if (item.source === 'card') {
-      sourceLabel = '카드/현금';
-      sourceColor = '#E3F2FD';
-      labelColor = '#1565C0';
-    } else if (item.source === 'cash') {
-      sourceLabel = '현금';
-      sourceColor = '#E8F5E9';
-      labelColor = '#2E7D32'; 
-    }
+    const { label, badgeColor, textColor } = SOURCE_CONFIG[item.source] ?? SOURCE_CONFIG.other;
 
     return (
       <View style={styles.recordRow}>
         <View style={styles.rowLeft}>
-            <Text style={styles.timeText}>{timeStr}</Text>
-            <View style={[styles.badge, { backgroundColor: sourceColor }]}>
-                <Text style={[styles.badgeText, { color: labelColor }]}>{sourceLabel}</Text>
-            </View>
+          <Text style={styles.timeText}>{timeStr}</Text>
+          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+            <Text style={[styles.badgeText, { color: textColor }]}>{label}</Text>
+          </View>
         </View>
-        
+
         <View style={styles.rowRight}>
           <Text style={styles.amountText}>{formatCurrency(item.amount)}원</Text>
-          <TouchableOpacity 
-            onPress={() => handleDeletePress(item)} 
-            style={styles.deleteButton} 
+          <TouchableOpacity
+            onPress={() => handleDeletePress(item)}
+            style={styles.deleteButton}
             hitSlop={styles.hitSlop}
           >
             <Text style={styles.deleteText}>✕</Text>
@@ -261,27 +241,25 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
     );
   };
 
-  // 쾌적한 팝업창을 위한 설정 로직
-  const getAlertProps = () => {
-    if (alertType === 'confirm_delete' && selectedRevenue) {
-        return {
-            title: "내역 삭제",
-            message: `${formatCurrency(selectedRevenue.amount)}원 내역을 삭제하시겠습니까?`,
-            confirmText: "삭제",
-            showCancel: true,
-            onConfirm: handleConfirmAction
-        };
-    }
-    return {
-        title: "오류",
-        message: "내역을 삭제하지 못했습니다. 다시 시도해 주세요.",
-        confirmText: "확인",
+  const alertProps = alertType === 'confirm_delete' && selectedRevenue
+    ? {
+        title: '내역 삭제',
+        message: `${formatCurrency(selectedRevenue.amount)}원 내역을 삭제하시겠습니까?`,
+        confirmText: '삭제',
+        showCancel: true,
+        onConfirm: handleConfirmAction,
+      }
+    : {
+        title: '오류',
+        message: '내역을 삭제하지 못했습니다. 다시 시도해 주세요.',
+        confirmText: '확인',
         showCancel: false,
-        onConfirm: handleAlertClose
-    };
-  };
+        onConfirm: handleAlertClose,
+      };
 
-  const alertProps = getAlertProps();
+  const summaryLabel = activeFilter === 'all'
+    ? '이번 달 총 수입'
+    : `${FILTERS.find(f => f.key === activeFilter)?.label} 수입`;
 
   return (
     <Modal
@@ -291,56 +269,76 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* 모달 상단 헤더: 제목 및 닫기 버튼 */}
+        {/* 헤더 */}
         <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>운행 상세 내역</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeText}>닫기</Text>
-            </TouchableOpacity>
+          <Text style={styles.modalTitle}>운행 상세 내역</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Text style={styles.closeText}>닫기</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 1. 월 이동 네비게이션 */}
+        {/* 월 네비게이션 */}
         <View style={styles.monthNav}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.navBtn}>
-                <Text style={styles.navBtnText}>〈</Text>
-            </TouchableOpacity>
-            <Text style={styles.monthTitle}>{formatMonthTitle(currentMonth)}</Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.navBtn}>
-                <Text style={styles.navBtnText}>〉</Text>
-            </TouchableOpacity>
+          <TouchableOpacity onPress={goToPrevMonth} style={styles.navBtn}>
+            <Text style={styles.navBtnText}>〈</Text>
+          </TouchableOpacity>
+          <Text style={styles.monthTitle}>{formatMonthTitle(currentMonth)}</Text>
+          <TouchableOpacity onPress={goToNextMonth} style={styles.navBtn}>
+            <Text style={styles.navBtnText}>〉</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 2. 해당 월의 총 수익 요약 카드 */}
+        {/* 요약 카드 */}
         <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>이번 달 총 수입</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(monthlyTotal)}원</Text>
-            </View>
+          <Text style={styles.summaryLabel}>{summaryLabel}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(filteredTotal)}원</Text>
+          {activeFilter !== 'all' && (
+            <Text style={styles.summarySubLabel}>이달 전체: {formatCurrency(monthlyTotal)}원</Text>
+          )}
         </View>
 
-        {/* 3. 일별로 그룹화된 상세 내역 리스트 */}
+        {/* 필터 탭 */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterBar}
+          contentContainerStyle={styles.filterBarContent}
+        >
+          {FILTERS.map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.filterTab, activeFilter === key && styles.filterTabActive]}
+              onPress={() => setActiveFilter(key)}
+            >
+              <Text style={[styles.filterTabText, activeFilter === key && styles.filterTabTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* 내역 리스트 */}
         <View style={styles.content}>
-            {sections.length === 0 ? (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>
-                        {loading ? '데이터를 불러오는 중...' : '해당 기간의 운행 기록이 없습니다.'}
-                    </Text>
-                </View>
-            ) : (
-                <SectionList
-                    sections={sections}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderItem}
-                    renderSectionHeader={renderSectionHeader}
-                    contentContainerStyle={styles.listContainer}
-                    showsVerticalScrollIndicator={false}
-                    stickySectionHeadersEnabled={true}
-                />
-            )}
+          {sections.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {loading ? '데이터를 불러오는 중...' : '해당 기간의 운행 기록이 없습니다.'}
+              </Text>
+            </View>
+          ) : (
+            <SectionList
+              sections={sections}
+              keyExtractor={item => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              stickySectionHeadersEnabled
+            />
+          )}
         </View>
 
-        {/* 내역 삭제 확인용 알림창 */}
-        <CustomAlert 
+        <CustomAlert
           visible={alertVisible}
           title={alertProps.title}
           message={alertProps.message}
@@ -354,6 +352,7 @@ export const RevenueHistoryModal = ({ visible, onClose }: RevenueHistoryModalPro
   );
 };
 
+// ─── 스타일 ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -361,19 +360,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingVertical: 16,
-      backgroundColor: '#FFF',
-      borderBottomWidth: 1,
-      borderBottomColor: '#EEE',
-      position: 'relative',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+    position: 'relative',
   },
   modalTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#333',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
   closeBtn: {
     position: 'absolute',
@@ -386,83 +385,108 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   monthNav: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingVertical: 16,
-      backgroundColor: '#FFF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#FFF',
   },
   navBtn: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   navBtnText: {
-      fontSize: 20,
-      color: '#999',
-      fontWeight: 'bold',
+    fontSize: 20,
+    color: '#999',
+    fontWeight: 'bold',
   },
   monthTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: '#333',
-      minWidth: 120,
-      textAlign: 'center',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    minWidth: 120,
+    textAlign: 'center',
   },
   summaryCard: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 20,
-      marginHorizontal: 16,
-      marginTop: 10,
-      marginBottom: 10,
-      backgroundColor: theme.colors.primary,
-      borderRadius: 16,
-      shadowColor: theme.colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 6,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flex: 1,
-    alignItems: 'center',
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   summaryLabel: {
-      color: 'rgba(255,255,255,0.9)',
-      fontSize: 14,
-      fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   summaryValue: {
-      color: '#FFF',
-      fontSize: 24,
-      fontWeight: 'bold',
+    color: '#FFF',
+    fontSize: 26,
+    fontWeight: 'bold',
+  },
+  summarySubLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  filterBar: {
+    flexGrow: 0,
+    paddingVertical: 10,
+  },
+  filterBarContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  filterTabActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  filterTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#888',
+  },
+  filterTabTextActive: {
+    color: '#FFF',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
   },
   sectionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: '#F5F7FA',
-      paddingVertical: 12,
-      paddingHorizontal: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F5F7FA',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   sectionTitle: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#666',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
   },
   sectionTotal: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#333',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
   },
   recordRow: {
     backgroundColor: '#FFF',
@@ -480,29 +504,28 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   rowLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   timeText: {
-      fontSize: 14,
-      color: '#888',
-      width: 65,
+    fontSize: 14,
+    color: '#888',
+    width: 65,
   },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#EEE',
   },
   badgeText: {
     fontSize: 11,
     fontWeight: 'bold',
   },
   rowRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   amountText: {
     fontSize: 16,
@@ -517,12 +540,12 @@ const styles = StyleSheet.create({
     color: '#CCC',
   },
   emptyState: {
-      marginTop: 60,
-      alignItems: 'center',
+    marginTop: 60,
+    alignItems: 'center',
   },
   emptyText: {
-      fontSize: 15,
-      color: '#999',
+    fontSize: 15,
+    color: '#999',
   },
   listContainer: {
     paddingBottom: 60,
@@ -532,5 +555,5 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: 10,
     right: 10,
-  }
+  },
 });

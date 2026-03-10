@@ -1,13 +1,26 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
 export type RootStackParamList = {
   Login: undefined;
   Dashboard: undefined;
   Signup: undefined;
   GoalSetting: { initialGoal: number } | undefined;
+  MonthlyReport: undefined;
 };
 
-export type LoginScreenProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
-export type SignupScreenProps = NativeStackScreenProps<RootStackParamList, 'Signup'>;
-export type DashboardScreenProps = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
-export type GoalSettingScreenProps = NativeStackScreenProps<RootStackParamList, 'GoalSetting'>;
+export type DashboardTabParamList = {
+  Today: undefined;
+  Month: undefined;
+  Efficiency: undefined;
+};
+
+export type LoginScreenProps       = NativeStackScreenProps<RootStackParamList, 'Login'>;
+export type SignupScreenProps       = NativeStackScreenProps<RootStackParamList, 'Signup'>;
+export type DashboardScreenProps    = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+export type GoalSettingScreenProps  = NativeStackScreenProps<RootStackParamList, 'GoalSetting'>;
+export type MonthlyReportScreenProps = NativeStackScreenProps<RootStackParamList, 'MonthlyReport'>;
+
+export type TodayScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Today'>;
+export type MonthScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Month'>;
+export type EfficiencyScreenProps = BottomTabScreenProps<DashboardTabParamList, 'Efficiency'>;

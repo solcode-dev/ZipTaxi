@@ -2,66 +2,52 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../theme';
 import { DailyGoalResult } from '../hooks/useDailyGoalCalculator';
+import { formatCurrency } from '../utils/formatUtils';
 
 interface DailyGoalCardProps {
   data: DailyGoalResult;
+  todayRevenue: number;
 }
 
-export const DailyGoalCard = (props: DailyGoalCardProps) => {
-  const { data } = props;
-  const {
-    dailyTarget,
-    progressPercent,
-    isBonusMode,
-    bonusAmount,
-    statusMessage
-  } = data;
+export const DailyGoalCard = ({ data, todayRevenue }: DailyGoalCardProps) => {
+  const { dailyTarget, progressPercent, isBonusMode, bonusAmount, statusMessage } = data;
 
-  // Decide styles based on mode
   const cardStyle = isBonusMode ? styles.bonusCard : styles.normalCard;
-  const progressColor = isBonusMode ? '#FFD700' : theme.colors.primary; // Gold or Primary
+  const progressColor = isBonusMode ? '#FFD700' : theme.colors.primary;
   const progressBackgroundColor = isBonusMode ? 'rgba(255, 215, 0, 0.2)' : '#E0E0E0';
-  
-  // Cap progress bar at 100% for visual sanity (unless we want it to overflow, but 100% is full)
-  // For bonus mode, maybe full bar is better or pulsing? Let's keep it full (100%) if bonus.
   const visualProgress = Math.min(100, Math.max(0, progressPercent));
+  const pctText = `${Math.round(progressPercent)}%`;
+
+  const mainAmount = isBonusMode
+    ? `+${formatCurrency(bonusAmount)}`
+    : formatCurrency(dailyTarget);
+  const mainUnit = isBonusMode ? '원 보너스!' : '원 목표';
 
   return (
     <View style={[styles.card, cardStyle]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={isBonusMode ? styles.bonusLabel : styles.label}>🔥 오늘의 미션</Text>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          {/* History Button (New) */}
-
-
-          {/* Goal Setting Button */}
-          <View style={styles.settingButton}>
-            <Text style={styles.settingButtonText}>목표 수정 ✎</Text>
-          </View>
-        </View>
+        {dailyTarget > 0 && (
+          <Text style={[styles.pctText, isBonusMode && styles.bonusPctText]}>{pctText}</Text>
+        )}
       </View>
 
-      {/* Main Amount */}
+      {/* Main Amount + current earned */}
       <View style={styles.mainContent}>
-        <Text style={styles.amountText}>
-          {isBonusMode 
-            ? `+${bonusAmount.toLocaleString()}` 
-            : dailyTarget.toLocaleString()}
-          <Text style={styles.unitText}>{isBonusMode ? '원 보너스!' : '원 목표'}</Text>
-        </Text>
+        <View style={styles.amountRow}>
+          <Text style={styles.amountText}>{mainAmount}</Text>
+          <Text style={styles.unitText}>{mainUnit}</Text>
+        </View>
+        {!isBonusMode && dailyTarget > 0 && (
+          <Text style={styles.currentText}>현재 {formatCurrency(todayRevenue)}원 달성</Text>
+        )}
       </View>
 
       {/* Progress Bar */}
       <View style={[styles.progressBarBackground, { backgroundColor: progressBackgroundColor }]}>
-        <View 
-          style={[
-            styles.progressBarFill, 
-            { 
-              width: `${visualProgress}%`, 
-              backgroundColor: progressColor 
-            }
-          ]} 
+        <View
+          style={[styles.progressBarFill, { width: `${visualProgress}%`, backgroundColor: progressColor }]}
         />
       </View>
 
@@ -88,9 +74,9 @@ const styles = StyleSheet.create({
     borderColor: '#EEEEEE',
   },
   bonusCard: {
-    backgroundColor: '#FFFBE6', // Very light gold/yellow
+    backgroundColor: '#FFFBE6',
     borderWidth: 2,
-    borderColor: '#FFD700', // Gold border
+    borderColor: '#FFD700',
   },
   header: {
     flexDirection: 'row',
@@ -106,32 +92,40 @@ const styles = StyleSheet.create({
   bonusLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF8C00', // Dark Orange/Gold
+    color: '#FF8C00',
   },
-  badge: {
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  pctText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
-  badgeText: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '600',
+  bonusPctText: {
+    color: '#FF8C00',
   },
   mainContent: {
     marginBottom: 16,
+    gap: 4,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
   },
   amountText: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000000',
+    lineHeight: 36,
   },
   unitText: {
-    fontSize: 18,
-    fontWeight: 'normal',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#666666',
-    marginLeft: 4,
+    lineHeight: 28,
+  },
+  currentText: {
+    fontSize: 13,
+    color: '#888888',
   },
   progressBarBackground: {
     height: 12,
@@ -147,37 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333333',
     fontWeight: '600',
-    textAlign: 'center',
-  },
-  settingButton: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-  },
-  settingButtonText: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: 'bold',
-  },
-  historyButton: {
-    backgroundColor: '#FFE812', // Kakao Yellow for visibility
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginRight: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  historyButtonText: {
-    fontSize: 12,
-    color: '#3C1E1E',
-    fontWeight: 'bold',
+    textAlign: 'left',
   },
 });

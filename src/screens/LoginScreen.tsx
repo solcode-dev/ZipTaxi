@@ -31,6 +31,7 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [fontScale, setFontScale] = useState(1);
   const [loading, setLoading] = useState(false);
+  const socialLoginInProgress = React.useRef(false);
 
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [resetUsername, setResetUsername] = useState('');
@@ -44,10 +45,11 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
     setAlertVisible(true);
   };
 
-  // 로그인 상태 감시 — 인증 성공 시 onAuthStateChanged가 Dashboard로 이동
+  // 로그인 상태 감시 — 이메일 로그인 시 Dashboard로 이동
+  // 소셜 로그인은 ensureUserDoc 완료 후 직접 이동하므로 여기선 억제
   useEffect(() => {
     const unsubscribe = firebaseAuth.onAuthStateChanged(user => {
-      if (user) navigation.replace('Dashboard');
+      if (user && !socialLoginInProgress.current) navigation.replace('Dashboard');
     });
     return unsubscribe;
   }, [navigation]);
@@ -83,11 +85,15 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
   const handleSocialLogin = async (provider: 'kakao' | 'naver') => {
     setLoading(true);
+    socialLoginInProgress.current = true;
     try {
       await signInWithSocial(provider);
+      navigation.replace('Dashboard');
     } catch (error: any) {
       setLoading(false);
       showAlert('로그인 실패', error.message ?? '소셜 로그인에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      socialLoginInProgress.current = false;
     }
   };
 
