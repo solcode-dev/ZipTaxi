@@ -34,27 +34,33 @@ async function resolveKakao(accessToken) {
         email: user.kakao_account?.email ?? '',
     };
 }
-async function resolveNaver(accessToken) {
-    const { response } = await fetchJson('https://openapi.naver.com/v1/nid/me', accessToken);
-    return {
-        uid: `naver:${response.id}`,
-        name: response.name ?? '기사님',
-        email: response.email ?? '',
-    };
+async function syncFirebaseAuthUser(profile) {
+    const auth = (0, auth_1.getAuth)();
+    const userRecord = { displayName: profile.name, email: profile.email || undefined };
+    try {
+        await auth.updateUser(profile.uid, userRecord);
+    }
+    catch (e) {
+        if (e.code === 'auth/user-not-found') {
+            await auth.createUser({ uid: profile.uid, ...userRecord });
+        }
+        else {
+            throw e;
+        }
+    }
 }
 // ─── Cloud Functions ──────────────────────────────────────────────────────────
 /**
- * [소셜 로그인]
- * Kakao/Naver 액세스 토큰을 검증하고 Firebase 커스텀 토큰을 발급합니다.
+ * [카카오 소셜 로그인]
+ * 카카오 액세스 토큰을 검증하고 Firebase Auth 유저를 동기화한 뒤 커스텀 토큰을 발급합니다.
  */
 exports.socialLogin = (0, https_1.onCall)(async (request) => {
     const { provider, accessToken } = request.data;
-    if (!provider || !accessToken) {
-        throw new https_1.HttpsError('invalid-argument', 'provider and accessToken are required');
+    if (provider !== 'kakao' || !accessToken) {
+        throw new https_1.HttpsError('invalid-argument', 'provider must be kakao and accessToken is required');
     }
-    const profile = provider === 'kakao' ? await resolveKakao(accessToken) :
-        provider === 'naver' ? await resolveNaver(accessToken) :
-            (() => { throw new https_1.HttpsError('invalid-argument', `Unsupported provider: ${provider}`); })();
+    const profile = await resolveKakao(accessToken);
+    await syncFirebaseAuthUser(profile);
     const customToken = await (0, auth_1.getAuth)().createCustomToken(profile.uid, { provider });
     return { customToken, profile };
 });

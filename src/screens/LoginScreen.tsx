@@ -16,7 +16,7 @@ import { theme } from '@theme/index';
 
 import { CustomAlert } from '../components/CustomAlert';
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
-import { signInWithSocial } from '../lib/socialAuth';
+import { signInWithKakao } from '../lib/socialAuth';
 import type { LoginScreenProps } from '../types/navigation';
 
 // 아이디로 Firebase Auth 이메일을 조회합니다. 신규 계정은 usernames 룩업, 구형은 더미 도메인 폴백.
@@ -83,15 +83,15 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
     }
   };
 
-  const handleSocialLogin = async (provider: 'kakao' | 'naver') => {
+  const handleKakaoLogin = async () => {
     setLoading(true);
     socialLoginInProgress.current = true;
     try {
-      await signInWithSocial(provider);
+      await signInWithKakao();
       navigation.replace('Dashboard');
     } catch (error: any) {
       setLoading(false);
-      showAlert('로그인 실패', error.message ?? '소셜 로그인에 실패했습니다. 다시 시도해주세요.');
+      showAlert('로그인 실패', error.message ?? '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
     } finally {
       socialLoginInProgress.current = false;
     }
@@ -215,17 +215,10 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
       <View style={styles.socialContainer}>
         <TouchableOpacity
           style={[styles.socialButton, { backgroundColor: theme.colors.social.kakao }, loading && styles.buttonDisabled]}
-          onPress={() => handleSocialLogin('kakao')}
+          onPress={handleKakaoLogin}
           disabled={loading}
         >
           <Text style={[styles.socialButtonText, styles.blackText]}>카카오 로그인</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: theme.colors.social.naver }, loading && styles.buttonDisabled]}
-          onPress={() => handleSocialLogin('naver')}
-          disabled={loading}
-        >
-          <Text style={[styles.socialButtonText, styles.whiteText]}>네이버 로그인</Text>
         </TouchableOpacity>
       </View>
 

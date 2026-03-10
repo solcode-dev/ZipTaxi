@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -19,7 +20,7 @@ export const TodayScreen = () => {
   const navigation = useNavigation<RootNav>();
   const {
     monthlyGoal, todayRevenue, todayExpense,
-    dailyGoalData, addRevenue, addExpense,
+    currentMonthWorkDays, dailyGoalData, addRevenue, addExpense,
   } = useDashboard();
 
   const [revenueModalVisible, setRevenueModalVisible] = useState(false);
@@ -44,13 +45,16 @@ export const TodayScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* 일일 목표 카드 */}
       <View style={styles.goalCardWrapper}>
-        <DailyGoalCard data={dailyGoalData} todayRevenue={todayRevenue} />
-        <TouchableOpacity
-          onPress={() => navigation.navigate('GoalSetting', { initialGoal: monthlyGoal })}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.goalHint}>목표 수정 ›</Text>
-        </TouchableOpacity>
+        <DailyGoalCard
+          data={dailyGoalData}
+          todayRevenue={todayRevenue}
+          onEditGoal={() =>
+            navigation.navigate('GoalSetting', {
+              initialGoal: monthlyGoal,
+              initialWorkDays: currentMonthWorkDays.length > 0 ? currentMonthWorkDays : undefined,
+            })
+          }
+        />
       </View>
 
       {/* 오늘 요약 */}
@@ -110,12 +114,6 @@ const styles = StyleSheet.create({
   goalCardWrapper: {
     marginHorizontal: 16,
     marginTop: 16,
-  },
-  goalHint: {
-    textAlign: 'right',
-    fontSize: 12,
-    color: theme.colors.primary,
-    marginTop: 6,
   },
   summaryRow: {
     flexDirection: 'row',

@@ -12,41 +12,43 @@ export interface DailyGoalResult {
 
 /**
  * 월 목표와 현재 성과를 기반으로 일일 권장 목표를 계산하는 Hook입니다.
- * 가벼운 Native Date 객체를 사용하여 날짜를 계산합니다.
- * 
+ *
  * @param monthlyGoal 사용자가 설정한 월 목표 매출
- * @param currentMonthlyRevenue 이번 달 현재까지의 총 매출 
- * @param currentDailyRevenue 오늘 현재까지의 매출 
+ * @param currentMonthlyRevenue 이번 달 현재까지의 총 매출
+ * @param currentDailyRevenue 오늘 현재까지의 매출
+ * @param remainingWorkDays 오늘 이후 남은 근무일수 (미입력 시 달력 기준 잔여 일수 사용)
  */
 export const useDailyGoalCalculator = (
   monthlyGoal: number,
   currentMonthlyRevenue: number,
-  currentDailyRevenue: number
+  currentDailyRevenue: number,
+  remainingWorkDays?: number,
 ): DailyGoalResult => {
-  
+
   return useMemo(() => {
     // 1. 날짜 계산
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth(); // 0부터 시작 (0 = 1월)
 
-    // 이번 달의 마지막 날 구하기
-    // new Date(year, month + 1, 0)은 해당 월의 마지막 날을 반환합니다.
     const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    
-    // 오늘을 포함한 잔여 일수 계산
-    // 예: 오늘이 31일이고 마지막 날이 31일이면, 남은 일수는 1일입니다.
-    const remainingDays = Math.max(1, lastDayOfMonth.getDate() - today.getDate() + 1);
+    const calendarRemainingDays = Math.max(1, lastDayOfMonth.getDate() - today.getDate() + 1);
+
+    // 근무일이 지정된 경우 그 값을 우선 사용, 최소 1일 보장
+    const remainingDays = remainingWorkDays != null
+      ? Math.max(1, remainingWorkDays)
+      : calendarRemainingDays;
 
     // 0. 예외 처리: 월 목표가 설정되지 않은 경우 (신규 유저)
     if (monthlyGoal === 0) {
+      const month = today.getMonth() + 1;
       return {
         dailyTarget: 0,
         progressPercent: 0,
         isBonusMode: false,
         bonusAmount: 0,
         remainingDays,
-        statusMessage: "👉 이곳을 눌러 이번 달 목표를 설정해주세요!"
+        statusMessage: `목표가 있는 날은 달라요.\n${month}월이 ${remainingDays}일 남았어요. 지금 목표를 세우면 오늘 얼마나 달려야 할지 바로 알려드릴게요 🎯`,
       };
     }
 
@@ -93,12 +95,15 @@ export const useDailyGoalCalculator = (
     
     let statusMessage = '';
     
+    const month = today.getMonth() + 1;
     if (isBonusMode) {
       statusMessage = `🔥 오버런! 현재 ${formatCurrency(bonusAmount)}원 추가 수익 중!`;
     } else if (progressPercent >= 100) {
       statusMessage = "오늘 목표 달성! 수고하셨어요 👏";
     } else if (progressPercent >= 50) {
       statusMessage = "절반 넘었어요! 조금만 더 힘내세요 💪";
+    } else if (currentDailyRevenue === 0) {
+      statusMessage = `매일 이만큼 벌면 ${month}월 목표 ${formatCurrency(monthlyGoal)}원 달성!`;
     } else {
       const remainingForToday = dailyTarget - currentDailyRevenue;
       statusMessage = `오늘 ${formatCurrency(remainingForToday)}원만 더 벌면 목표 달성!`;
@@ -112,5 +117,5 @@ export const useDailyGoalCalculator = (
       remainingDays,
       statusMessage
     };
-  }, [monthlyGoal, currentMonthlyRevenue, currentDailyRevenue]);
+  }, [monthlyGoal, currentMonthlyRevenue, currentDailyRevenue, remainingWorkDays]);
 };

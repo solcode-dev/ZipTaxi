@@ -28,6 +28,7 @@ export interface DashboardContextValue {
   todayExpense: number;
   monthlyDrivingMinutes: number;
   monthlyDistanceKm: number;
+  currentMonthWorkDays: number[];
   // 파생 계산값
   netProfit: number;
   progressPct: number;
@@ -59,10 +60,16 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
   const { addExpense } = useExpenseTracker();
   const { addDrivingSession } = useDrivingStats();
 
+  const today = new Date();
+  const remainingWorkDays = userDoc.currentMonthWorkDays.length > 0
+    ? userDoc.currentMonthWorkDays.filter(d => d >= today.getDate()).length
+    : undefined;
+
   const dailyGoalData = useDailyGoalCalculator(
     userDoc.monthlyGoal,
     userDoc.monthlyRevenue,
     userDoc.todayRevenue,
+    remainingWorkDays,
   );
   const streakData = useStreakCalculator(
     userDoc.monthlyGoal,

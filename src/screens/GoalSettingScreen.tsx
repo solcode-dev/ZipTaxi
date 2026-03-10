@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -12,9 +13,9 @@ import {
 } from 'react-native';
 import { theme } from '../theme';
 
-// 중앙 집중식 Firebase 서비스 레이어에서 필요한 기능을 가져옵니다.
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
-import { doc, updateDoc } from '@react-native-firebase/firestore';
+import { doc, updateDoc, getDoc } from '@react-native-firebase/firestore';
+import { getYearMonth, getWeekdayDays } from '../utils/calendarUtils';
 
 import { CustomAlert } from '../components/CustomAlert';
 import { formatNumberInput, parseNumericInput } from '../utils/formatUtils';
@@ -25,14 +26,33 @@ import type { GoalSettingScreenProps } from '../types/navigation';
  * 사용자가 월간 목표 수익을 설정하거나 수정할 수 있는 화면입니다.
  */
 export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps) => {
-  // 이전 화면(대시보드)에서 전달받은 기존 목표 금액
   const initialGoal = route.params?.initialGoal || 0;
-  const currentMonth = new Date().getMonth() + 1;
-  
-  const [goalAmount, setGoalAmount] = useState(''); // 입력 중인 숫자값 (문자열 타입으로 관리)
-  const [loading, setLoading] = useState(false); // 저장 처리 중 상태
-  
-  // 커스텀 알림창 상태 관리
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const [goalAmount, setGoalAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [workDayCount, setWorkDayCount] = useState<number>(() => {
+    const initial = route.params?.initialWorkDays;
+    return initial ? initial.length : getWeekdayDays(currentYear, currentMonth).length;
+  });
+
+  // WorkDays 화면에서 돌아올 때 근무일 수 갱신
+  useFocusEffect(
+    useCallback(() => {
+      const user = firebaseAuth.currentUser;
+      if (!user) return;
+      const userRef = doc(firebaseDb, 'users', user.uid);
+      const key = getYearMonth(currentYear, currentMonth);
+      getDoc(userRef).then(snap => {
+        const data = snap.data();
+        const days: number[] | undefined = data?.workSchedule?.[key];
+        if (days) setWorkDayCount(days.length);
+      }).catch(() => {/* 무시 */});
+    }, [currentYear, currentMonth]),
+  );
+
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
 
@@ -127,6 +147,28 @@ export const GoalSettingScreen = ({ navigation, route }: GoalSettingScreenProps)
             </View>
             <Text style={styles.helperText}>언제든 다시 수정할 수 있어요. 편하게 입력해주세요.</Text>
           </View>
+
+          {/* 근무일 설정 행 */}
+          <TouchableOpacity
+            style={styles.workDaysRow}
+            onPress={() =>
+              navigation.navigate('WorkDays', {
+                year: currentYear,
+                month: currentMonth,
+                initialDays: route.params?.initialWorkDays,
+              })
+            }
+            activeOpacity={0.7}
+          >
+            <View>
+              <Text style={styles.workDaysLabel}>이번 달 근무일</Text>
+              <Text style={styles.workDaysNote}>일일 목표 계산에 사용됩니다</Text>
+            </View>
+            <View style={styles.workDaysRight}>
+              <Text style={styles.workDaysValue}>{workDayCount}일</Text>
+              <Text style={styles.workDaysChevron}>›</Text>
+            </View>
+          </TouchableOpacity>
 
           {/* 중앙 여백 확보 */}
           <View style={styles.spacer} />
@@ -238,5 +280,42 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.7,
+  },
+  workDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FD',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  workDaysLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  workDaysNote: {
+    fontSize: 12,
+    color: '#AAA',
+  },
+  workDaysRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  workDaysValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  workDaysChevron: {
+    fontSize: 20,
+    color: '#BBB',
+    marginTop: 1,
   },
 });

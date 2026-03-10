@@ -14,8 +14,6 @@ const getOpenAI = () => {
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
-type SocialProvider = 'kakao' | 'naver';
-
 interface SocialProfile {
   uid: string;
   name: string;
@@ -23,7 +21,7 @@ interface SocialProfile {
 }
 
 interface SocialLoginRequest {
-  provider: SocialProvider;
+  provider: 'kakao';
   accessToken: string;
 }
 
@@ -36,7 +34,7 @@ type AnalysisType = 'weekly' | 'monthly';
 
 interface AnalyzeRevenueRequest {
   type: AnalysisType;
-  summary: string; // 클라이언트가 미리 포맷한 텍스트 요약
+  summary: string;
 }
 
 interface AnalyzeRevenueResponse {
@@ -64,34 +62,36 @@ async function resolveKakao(accessToken: string): Promise<SocialProfile> {
   };
 }
 
-async function resolveNaver(accessToken: string): Promise<SocialProfile> {
-  const { response } = await fetchJson('https://openapi.naver.com/v1/nid/me', accessToken);
-  return {
-    uid: `naver:${response.id}`,
-    name: response.name ?? '기사님',
-    email: response.email ?? '',
-  };
+async function syncFirebaseAuthUser(profile: SocialProfile): Promise<void> {
+  const auth = getAuth();
+  const userRecord = { displayName: profile.name, email: profile.email || undefined };
+  try {
+    await auth.updateUser(profile.uid, userRecord);
+  } catch (e: any) {
+    if (e.code === 'auth/user-not-found') {
+      await auth.createUser({ uid: profile.uid, ...userRecord });
+    } else {
+      throw e;
+    }
+  }
 }
 
 // ─── Cloud Functions ──────────────────────────────────────────────────────────
 
 /**
- * [소셜 로그인]
- * Kakao/Naver 액세스 토큰을 검증하고 Firebase 커스텀 토큰을 발급합니다.
+ * [카카오 소셜 로그인]
+ * 카카오 액세스 토큰을 검증하고 Firebase Auth 유저를 동기화한 뒤 커스텀 토큰을 발급합니다.
  */
 export const socialLogin = onCall<SocialLoginRequest, Promise<SocialLoginResponse>>(
   async (request) => {
     const { provider, accessToken } = request.data;
 
-    if (!provider || !accessToken) {
-      throw new HttpsError('invalid-argument', 'provider and accessToken are required');
+    if (provider !== 'kakao' || !accessToken) {
+      throw new HttpsError('invalid-argument', 'provider must be kakao and accessToken is required');
     }
 
-    const profile =
-      provider === 'kakao' ? await resolveKakao(accessToken) :
-      provider === 'naver' ? await resolveNaver(accessToken) :
-      (() => { throw new HttpsError('invalid-argument', `Unsupported provider: ${provider}`); })();
-
+    const profile = await resolveKakao(accessToken);
+    await syncFirebaseAuthUser(profile);
     const customToken = await getAuth().createCustomToken(profile.uid, { provider });
     return { customToken, profile };
   },

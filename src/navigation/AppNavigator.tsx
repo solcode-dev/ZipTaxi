@@ -7,6 +7,7 @@ import { LoginScreen }           from '@screens/LoginScreen';
 import { SignupScreen }          from '../screens/SignupScreen';
 import { GoalSettingScreen }     from '../screens/GoalSettingScreen';
 import { MonthlyReportScreen }   from '../screens/MonthlyReportScreen';
+import { WorkDaysScreen }        from '../screens/WorkDaysScreen';
 import { DashboardTabNavigator } from './DashboardTabNavigator';
 
 import type { RootStackParamList } from '../types/navigation';
@@ -27,6 +28,8 @@ export const AppNavigator = () => (
         options={{ headerShown: true, title: '목표 설정', headerBackTitle: '뒤로' }} />
       <Stack.Screen name="MonthlyReport" component={MonthlyReportScreen}
         options={{ headerShown: true, title: '월간 리포트', headerBackTitle: '뒤로' }} />
+      <Stack.Screen name="WorkDays" component={WorkDaysScreen}
+        options={{ headerShown: true, title: '근무일 설정', headerBackTitle: '뒤로' }} />
     </Stack.Navigator>
   </NavigationContainer>
 );

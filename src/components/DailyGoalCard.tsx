@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '../theme';
 import { DailyGoalResult } from '../hooks/useDailyGoalCalculator';
 import { formatCurrency } from '../utils/formatUtils';
@@ -7,10 +7,14 @@ import { formatCurrency } from '../utils/formatUtils';
 interface DailyGoalCardProps {
   data: DailyGoalResult;
   todayRevenue: number;
+  onEditGoal: () => void;
 }
 
-export const DailyGoalCard = ({ data, todayRevenue }: DailyGoalCardProps) => {
+export const DailyGoalCard = ({ data, todayRevenue, onEditGoal }: DailyGoalCardProps) => {
   const { dailyTarget, progressPercent, isBonusMode, bonusAmount, statusMessage } = data;
+
+  const noGoal = dailyTarget === 0 && !isBonusMode;
+  const month = new Date().getMonth() + 1;
 
   const cardStyle = isBonusMode ? styles.bonusCard : styles.normalCard;
   const progressColor = isBonusMode ? '#FFD700' : theme.colors.primary;
@@ -28,31 +32,50 @@ export const DailyGoalCard = ({ data, todayRevenue }: DailyGoalCardProps) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={isBonusMode ? styles.bonusLabel : styles.label}>🔥 오늘의 미션</Text>
-        {dailyTarget > 0 && (
+        {!noGoal && (
           <Text style={[styles.pctText, isBonusMode && styles.bonusPctText]}>{pctText}</Text>
         )}
       </View>
 
       {/* Main Amount + current earned */}
-      <View style={styles.mainContent}>
-        <View style={styles.amountRow}>
-          <Text style={styles.amountText}>{mainAmount}</Text>
-          <Text style={styles.unitText}>{mainUnit}</Text>
+      {!noGoal && (
+        <View style={styles.mainContent}>
+          <View style={styles.amountRow}>
+            <Text style={styles.amountText}>{mainAmount}</Text>
+            <Text style={styles.unitText}>{mainUnit}</Text>
+          </View>
+          {!isBonusMode && (
+            <Text style={styles.currentText}>현재 {formatCurrency(todayRevenue)}원 달성</Text>
+          )}
         </View>
-        {!isBonusMode && dailyTarget > 0 && (
-          <Text style={styles.currentText}>현재 {formatCurrency(todayRevenue)}원 달성</Text>
-        )}
-      </View>
+      )}
 
       {/* Progress Bar */}
-      <View style={[styles.progressBarBackground, { backgroundColor: progressBackgroundColor }]}>
-        <View
-          style={[styles.progressBarFill, { width: `${visualProgress}%`, backgroundColor: progressColor }]}
-        />
-      </View>
+      {!noGoal && (
+        <View style={[styles.progressBarBackground, { backgroundColor: progressBackgroundColor }]}>
+          <View
+            style={[styles.progressBarFill, { width: `${visualProgress}%`, backgroundColor: progressColor }]}
+          />
+        </View>
+      )}
 
       {/* Message */}
       <Text style={styles.messageText}>{statusMessage}</Text>
+
+      {/* 목표 미설정 시 카드 내부 CTA 버튼 */}
+      {noGoal ? (
+        <TouchableOpacity style={styles.ctaButton} onPress={onEditGoal}>
+          <Text style={styles.ctaText}>{month}월 목표 세우기  +</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.editLink}
+          onPress={onEditGoal}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.editLinkText}>목표 금액 바꾸기 ›</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -142,5 +165,26 @@ const styles = StyleSheet.create({
     color: '#333333',
     fontWeight: '600',
     textAlign: 'left',
+    marginBottom: 12,
+  },
+  editLink: {
+    alignSelf: 'flex-end',
+  },
+  editLinkText: {
+    fontSize: 13,
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  ctaButton: {
+    marginTop: 16,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { firebaseAuth, firebaseDb } from '../lib/firebase';
 import { doc, onSnapshot, updateDoc, setDoc } from '@react-native-firebase/firestore';
 import { getTodayStr } from '../utils/dateUtils';
+import { getYearMonth } from '../utils/calendarUtils';
 
 export interface UserDocState {
   userName: string;
@@ -13,6 +14,8 @@ export interface UserDocState {
   todayExpense: number;
   monthlyDrivingMinutes: number;
   monthlyDistanceKm: number;
+  /** 이번 달 사용자가 설정한 근무일 배열 (일 번호, 없으면 빈 배열) */
+  currentMonthWorkDays: number[];
 }
 
 const DEFAULT_STATE: UserDocState = {
@@ -25,6 +28,7 @@ const DEFAULT_STATE: UserDocState = {
   todayExpense: 0,
   monthlyDrivingMinutes: 0,
   monthlyDistanceKm: 0,
+  currentMonthWorkDays: [],
 };
 
 /**
@@ -60,6 +64,8 @@ export const useUserDoc = (): UserDocState => {
         return;
       }
 
+      const now = new Date();
+      const thisMonthKey = getYearMonth(now.getFullYear(), now.getMonth() + 1);
       const thisMonth = getTodayStr().slice(0, 7);
       const resets: Record<string, number> = {};
 
@@ -86,6 +92,7 @@ export const useUserDoc = (): UserDocState => {
       }
 
       const todayStr = getTodayStr();
+      const workSchedule: Record<string, number[]> = d.workSchedule ?? {};
       setState({
         userName: d.name || '기사님',
         monthlyGoal: d.monthlyGoal || 0,
@@ -96,6 +103,7 @@ export const useUserDoc = (): UserDocState => {
         todayExpense: d.lastExpenseDate === todayStr ? (d.todayExpense || 0) : 0,
         monthlyDrivingMinutes: d.monthlyDrivingMinutes || 0,
         monthlyDistanceKm: d.monthlyDistanceKm || 0,
+        currentMonthWorkDays: workSchedule[thisMonthKey] ?? [],
       });
     });
 

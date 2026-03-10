@@ -5,8 +5,9 @@ export type RootStackParamList = {
   Login: undefined;
   Dashboard: undefined;
   Signup: undefined;
-  GoalSetting: { initialGoal: number } | undefined;
+  GoalSetting: { initialGoal: number; initialWorkDays?: number[] } | undefined;
   MonthlyReport: undefined;
+  WorkDays: { year: number; month: number; initialDays?: number[] };
 };
 
 export type DashboardTabParamList = {
@@ -20,6 +21,7 @@ export type SignupScreenProps       = NativeStackScreenProps<RootStackParamList,
 export type DashboardScreenProps    = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 export type GoalSettingScreenProps  = NativeStackScreenProps<RootStackParamList, 'GoalSetting'>;
 export type MonthlyReportScreenProps = NativeStackScreenProps<RootStackParamList, 'MonthlyReport'>;
+export type WorkDaysScreenProps      = NativeStackScreenProps<RootStackParamList, 'WorkDays'>;
 
 export type TodayScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Today'>;
 export type MonthScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Month'>;
