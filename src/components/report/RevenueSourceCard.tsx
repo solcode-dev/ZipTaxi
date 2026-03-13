@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { formatCurrency } from '../../utils/formatUtils';
 import { cardStyle, sectionLabelStyle, COLORS } from './shared';
@@ -16,7 +16,7 @@ interface Props {
   total: number;
 }
 
-export const RevenueSourceCard = ({ bySource, total }: Props) => {
+export const RevenueSourceCard = memo(({ bySource, total }: Props) => {
   if (total === 0) return null;
 
   const entries = (Object.entries(bySource) as [RevenueSource, number][])
@@ -52,7 +52,7 @@ export const RevenueSourceCard = ({ bySource, total }: Props) => {
       })}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   strip: {

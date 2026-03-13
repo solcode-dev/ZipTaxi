@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
@@ -16,6 +16,72 @@ import type { RootStackParamList } from '../../types/navigation';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
+// ─── 서브 컴포넌트: 수입 요약 카드 (메모이제이션 적용) ──────────────────────────
+interface MonthlySummaryCardProps {
+  monthlyRevenue: number;
+  netProfit: number;
+  monthlyExpense: number;
+  monthlyGoal: number;
+  progressPct: number;
+  dailyAvg: number;
+  totalRevenue: number;
+  onPress: () => void;
+}
+
+const MonthlySummaryCard = memo(({
+  monthlyRevenue, netProfit, monthlyExpense,
+  monthlyGoal, progressPct, dailyAvg, totalRevenue, onPress
+}: MonthlySummaryCardProps) => (
+  <TouchableOpacity
+    style={styles.card}
+    activeOpacity={0.85}
+    onPress={onPress}
+  >
+    <View style={styles.cardHeader}>
+      <Text style={styles.cardLabel}>이번 달 총 수입</Text>
+      <Ionicons name="chevron-forward" size={16} color="#BDBDBD" />
+    </View>
+
+    <View style={styles.heroRow}>
+      <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)}</Text>
+      <Text style={styles.mainUnit}>원</Text>
+    </View>
+
+    <View style={styles.divider} />
+
+    <View style={styles.summaryRow}>
+      <View style={styles.summaryCell}>
+        <Text style={styles.badgeLabel}>순이익</Text>
+        <Text style={[styles.badgeValue, netProfit > 0 ? styles.profit : styles.loss]}>
+          {netProfit > 0 ? '+' : ''}{formatCurrency(netProfit)}원
+        </Text>
+      </View>
+      <View style={styles.summaryDivider} />
+      <View style={styles.summaryCell}>
+        <Text style={styles.badgeLabel}>이달 지출</Text>
+        <Text style={[styles.badgeValue, monthlyExpense > 0 ? styles.loss : styles.neutral]}>
+          {monthlyExpense > 0 ? '-' : ''}{formatCurrency(monthlyExpense)}원
+        </Text>
+      </View>
+    </View>
+
+    {monthlyGoal > 0 && (
+      <View style={styles.goalRow}>
+        <View style={styles.goalMeta}>
+          <Text style={styles.goalLabel}>목표 {formatCurrency(monthlyGoal)}원</Text>
+          <Text style={styles.goalPct}>{Math.round(progressPct)}%</Text>
+        </View>
+        <View style={styles.goalProgressBg}>
+          <View style={[styles.goalProgressFill, { width: `${Math.min(100, progressPct)}%` }]} />
+        </View>
+      </View>
+    )}
+
+    <Text style={styles.paceText}>일 평균 {formatCurrency(dailyAvg)}원</Text>
+    <Text style={styles.cumulativeText}>누적 수입 {formatCurrency(totalRevenue)}원</Text>
+  </TouchableOpacity>
+));
+
 export const MonthScreen = () => {
   const navigation = useNavigation<RootNav>();
   const {
@@ -27,66 +93,29 @@ export const MonthScreen = () => {
 
   const [historyVisible, setHistoryVisible] = useState(false);
 
-  const dailyAvg = Math.round(monthlyRevenue / new Date().getDate());
+  // 불필요한 반복 계산 방지
+  const dailyAvg = useMemo(() => {
+    return Math.round(monthlyRevenue / new Date().getDate());
+  }, [monthlyRevenue]);
+
+  // 참조값이 변하지 않는 콜백 생성
+  const handleOpenHistory = useCallback(() => setHistoryVisible(true), []);
+  const handleCloseHistory = useCallback(() => setHistoryVisible(false), []);
+  const handleNavMonthlyReport = useCallback(() => navigation.navigate('MonthlyReport'), [navigation]);
 
   return (
     <View style={styles.screen}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 이번 달 총 수입 */}
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.85}
-        onPress={() => setHistoryVisible(true)}
-      >
-        {/* 헤더 */}
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardLabel}>이번 달 총 수입</Text>
-          <Ionicons name="chevron-forward" size={16} color="#BDBDBD" />
-        </View>
-
-        {/* 메인 수치 */}
-        <View style={styles.heroRow}>
-          <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)}</Text>
-          <Text style={styles.mainUnit}>원</Text>
-        </View>
-
-        {/* 구분선 */}
-        <View style={styles.divider} />
-
-        {/* 순이익 / 지출 */}
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCell}>
-            <Text style={styles.badgeLabel}>순이익</Text>
-            <Text style={[styles.badgeValue, netProfit > 0 ? styles.profit : styles.loss]}>
-              {netProfit > 0 ? '+' : ''}{formatCurrency(netProfit)}원
-            </Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryCell}>
-            <Text style={styles.badgeLabel}>이달 지출</Text>
-            <Text style={[styles.badgeValue, monthlyExpense > 0 ? styles.loss : styles.neutral]}>
-              {monthlyExpense > 0 ? '-' : ''}{formatCurrency(monthlyExpense)}원
-            </Text>
-          </View>
-        </View>
-
-        {/* 목표 달성률 */}
-        {monthlyGoal > 0 && (
-          <View style={styles.goalRow}>
-            <View style={styles.goalMeta}>
-              <Text style={styles.goalLabel}>목표 {formatCurrency(monthlyGoal)}원</Text>
-              <Text style={styles.goalPct}>{Math.round(progressPct)}%</Text>
-            </View>
-            <View style={styles.goalProgressBg}>
-              <View style={[styles.goalProgressFill, { width: `${Math.min(100, progressPct)}%` }]} />
-            </View>
-          </View>
-        )}
-
-        {/* 페이스 / 누적 */}
-        <Text style={styles.paceText}>일 평균 {formatCurrency(dailyAvg)}원</Text>
-        <Text style={styles.cumulativeText}>누적 수입 {formatCurrency(totalRevenue)}원</Text>
-      </TouchableOpacity>
+      <MonthlySummaryCard 
+        monthlyRevenue={monthlyRevenue}
+        netProfit={netProfit}
+        monthlyExpense={monthlyExpense}
+        monthlyGoal={monthlyGoal}
+        progressPct={progressPct}
+        dailyAvg={dailyAvg}
+        totalRevenue={totalRevenue}
+        onPress={handleOpenHistory}
+      />
 
       {/* 운행 효율 */}
       <DrivingStatsCard
@@ -103,7 +132,7 @@ export const MonthScreen = () => {
 
       <RevenueHistoryModal
         visible={historyVisible}
-        onClose={() => setHistoryVisible(false)}
+        onClose={handleCloseHistory}
       />
     </ScrollView>
 
@@ -112,7 +141,7 @@ export const MonthScreen = () => {
       <TouchableOpacity
         style={styles.reportButton}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('MonthlyReport')}
+        onPress={handleNavMonthlyReport}
       >
         <Ionicons name="bar-chart-outline" size={18} color="#fff" />
         <Text style={styles.reportButtonText}>월간 리포트 보기</Text>

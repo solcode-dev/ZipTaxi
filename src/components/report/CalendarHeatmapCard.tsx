@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { generateCalendarWeeks } from '../../utils/calendarUtils';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -22,7 +22,7 @@ function cellColor(amount: number, max: number): string {
   return `rgba(108, 99, 255, ${opacity.toFixed(2)})`;
 }
 
-export const CalendarHeatmapCard = ({ viewDate, dailyRevenue }: Props) => {
+export const CalendarHeatmapCard = memo(({ viewDate, dailyRevenue }: Props) => {
   const year  = viewDate.getFullYear();
   const month = viewDate.getMonth() + 1;
   const weeks = useMemo(() => generateCalendarWeeks(year, month), [year, month]);
@@ -107,7 +107,7 @@ export const CalendarHeatmapCard = ({ viewDate, dailyRevenue }: Props) => {
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   weekdayRow: {

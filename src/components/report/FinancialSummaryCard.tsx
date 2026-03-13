@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -26,7 +26,7 @@ const MetricRow = ({ label, value, color = COLORS.dark }: MetricRowProps) => (
   </View>
 );
 
-export const FinancialSummaryCard = ({ total, expense, netProfit, workingDays, dailyAvg, prevTotal }: Props) => {
+export const FinancialSummaryCard = memo(({ total, expense, netProfit, workingDays, dailyAvg, prevTotal }: Props) => {
   const diff    = total - prevTotal;
   const diffPct = prevTotal > 0 ? Math.round((diff / prevTotal) * 100) : null;
   const isUp    = diff >= 0;
@@ -75,7 +75,7 @@ export const FinancialSummaryCard = ({ total, expense, netProfit, workingDays, d
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   metricRow: {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -94,7 +94,7 @@ interface Props {
   data: MonthlyReportData;
 }
 
-export const ReportHeroCard = ({ total, monthlyGoal, prevTotal, viewDate, data }: Props) => {
+export const ReportHeroCard = memo(({ total, monthlyGoal, prevTotal, viewDate, data }: Props) => {
   const month   = viewDate.getMonth() + 1;
   const verdict = getVerdict(total, monthlyGoal, month);
   const compare = getComparison(total, prevTotal);
@@ -125,7 +125,7 @@ export const ReportHeroCard = ({ total, monthlyGoal, prevTotal, viewDate, data }
       )}
     </View>
   );
-};
+});
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

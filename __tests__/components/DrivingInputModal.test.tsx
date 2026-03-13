@@ -33,7 +33,7 @@ describe('DrivingInputModal — 렌더링', () => {
   test('안내 문구 표시', () => {
     const tree = createComponent(<DrivingInputModal {...defaultProps} />);
     const texts = tree.root.findAllByType(Text).map(t => t.props.children);
-    expect(texts).toContain('이번 운행 기록을 입력하세요');
+    expect(texts).toContain('오늘 하루 총 운행 시간과 거리를 입력해주세요');
   });
 
   test('헤더 제목 표시', () => {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { cardStyle, sectionLabelStyle, COLORS } from './shared';
@@ -18,7 +18,12 @@ interface Props {
   loading: boolean;
 }
 
-export const YearlyTrendCard = ({ year, monthly, currentMonth, loading }: Props) => {
+// ─── 안정적인 라벨 컴포넌트 분리 ──────────────────────────────
+const BarTopLabel = ({ value }: { value: number }) => {
+  return <Text style={styles.barTop}>{formatMan(value)}</Text>;
+};
+
+export const YearlyTrendCard = memo(({ year, monthly, currentMonth, loading }: Props) => {
   const { width: windowWidth } = useWindowDimensions();
   // 카드 padding 20×2 + 화면 padding 16×2
   const chartWidth = windowWidth - 72;
@@ -33,9 +38,7 @@ export const YearlyTrendCard = ({ year, monthly, currentMonth, loading }: Props)
     value,
     label: MONTH_LABELS[i],
     frontColor: i === currentMonth - 1 ? COLORS.primary : `${COLORS.primary}55`,
-    topLabelComponent: () => (
-      <Text style={styles.barTop}>{formatMan(value)}</Text>
-    ),
+    topLabelComponent: () => <BarTopLabel value={value} />,
   })), [monthly, currentMonth]);
 
   return (
@@ -64,7 +67,7 @@ export const YearlyTrendCard = ({ year, monthly, currentMonth, loading }: Props)
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   loader: {

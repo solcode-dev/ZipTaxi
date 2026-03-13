@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -69,7 +69,7 @@ const PatternRow = ({ icon, label, value, sub }: PatternRowProps) => (
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const GoldenPatternCard = ({ bestDayOfWeek, bestTimeSlot, bestDay, byDayOfWeek, byTimeSlot }: Props) => {
+export const GoldenPatternCard = memo(({ bestDayOfWeek, bestTimeSlot, bestDay, byDayOfWeek, byTimeSlot }: Props) => {
   const hasData = bestDayOfWeek !== null || bestTimeSlot !== null || bestDay !== null;
   if (!hasData) return null;
 
@@ -119,7 +119,7 @@ export const GoldenPatternCard = ({ bestDayOfWeek, bestTimeSlot, bestDay, byDayO
       )}
     </View>
   );
-};
+});
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
