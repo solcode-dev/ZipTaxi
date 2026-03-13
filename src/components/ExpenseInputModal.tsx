@@ -79,7 +79,7 @@ export const ExpenseInputModal = ({ visible, onClose, onConfirm }: ExpenseInputM
   const selectedCat = CATEGORIES.find(c => c.key === category);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose} statusBarTranslucent>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
 

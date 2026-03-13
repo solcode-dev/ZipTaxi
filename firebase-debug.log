@@ -1,0 +1,93 @@
+[debug] [2026-03-13T10:04:09.474Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:09.476Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:09.476Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:09.476Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:09.476Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.476Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.476Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.476Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.476Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:09.476Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:09.477Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.477Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:09.477Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo [none]
+[debug] [2026-03-13T10:04:09.488Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo [none]
+[debug] [2026-03-13T10:04:09.489Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo [none]
+[debug] [2026-03-13T10:04:10.080Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo 200
+[debug] [2026-03-13T10:04:10.080Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo {"name":"projects/zip-taxi-d1be3/billingInfo","projectId":"zip-taxi-d1be3","billingAccountName":"billingAccounts/01D5FA-FFEE27-E66F92","billingEnabled":true}
+[debug] [2026-03-13T10:04:10.086Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.086Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.093Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.093Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.093Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.093Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.094Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.094Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.094Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.094Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.095Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [none]
+[debug] [2026-03-13T10:04:10.095Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.795Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo 200
+[debug] [2026-03-13T10:04:10.795Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo {"name":"projects/zip-taxi-d1be3/billingInfo","projectId":"zip-taxi-d1be3","billingAccountName":"billingAccounts/01D5FA-FFEE27-E66F92","billingEnabled":true}
+[debug] [2026-03-13T10:04:10.796Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.797Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.799Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.799Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.799Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.799Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.799Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.799Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.800Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.800Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.800Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [none]
+[debug] [2026-03-13T10:04:10.800Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.801Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo 200
+[debug] [2026-03-13T10:04:10.801Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo {"name":"projects/zip-taxi-d1be3/billingInfo","projectId":"zip-taxi-d1be3","billingAccountName":"billingAccounts/01D5FA-FFEE27-E66F92","billingEnabled":true}
+[debug] [2026-03-13T10:04:10.801Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.801Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.802Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.803Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.803Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.803Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:10.803Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.803Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.803Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-03-13T10:04:10.803Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:10.804Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [none]
+[debug] [2026-03-13T10:04:10.804Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com x-goog-quota-user=projects/zip-taxi-d1be3
+[debug] [2026-03-13T10:04:11.406Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com 403
+[debug] [2026-03-13T10:04:11.406Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [omitted]
+[debug] [2026-03-13T10:04:11.436Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-03-13T10:04:11.436Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:11.450Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-03-13T10:04:11.451Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:11.453Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:11.453Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:11.453Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:11.453Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:11.453Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo [none]
+[debug] [2026-03-13T10:04:12.088Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com 403
+[debug] [2026-03-13T10:04:12.088Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [omitted]
+[debug] [2026-03-13T10:04:12.156Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com 403
+[debug] [2026-03-13T10:04:12.156Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseio.com [omitted]
+[debug] [2026-03-13T10:04:12.389Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-03-13T10:04:12.389Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-03-13T10:04:12.390Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/zip-taxi-d1be3/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-03-13T10:04:12.391Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:12.392Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:12.392Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:12.392Z] Checked if tokens are valid: true, expires at: 1773397957785
+[debug] [2026-03-13T10:04:12.392Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo [none]
+[debug] [2026-03-13T10:04:12.541Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo 200
+[debug] [2026-03-13T10:04:12.541Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo {"name":"projects/zip-taxi-d1be3/billingInfo","projectId":"zip-taxi-d1be3","billingAccountName":"billingAccounts/01D5FA-FFEE27-E66F92","billingEnabled":true}
+[debug] [2026-03-13T10:04:12.575Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:12.575Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)
+[debug] [2026-03-13T10:04:13.745Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo 200
+[debug] [2026-03-13T10:04:13.746Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/zip-taxi-d1be3/billingInfo {"name":"projects/zip-taxi-d1be3/billingInfo","projectId":"zip-taxi-d1be3","billingAccountName":"billingAccounts/01D5FA-FFEE27-E66F92","billingEnabled":true}
+[debug] [2026-03-13T10:04:13.985Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-13T10:04:13.985Z] > authorizing via signed-in user (soyoungahn2706@gmail.com)

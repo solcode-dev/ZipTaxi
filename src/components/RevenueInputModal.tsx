@@ -94,6 +94,7 @@ export const RevenueInputModal = ({ visible, onClose, onConfirm }: RevenueInputM
       transparent
       animationType="fade"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>

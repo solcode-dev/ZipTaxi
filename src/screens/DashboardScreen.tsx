@@ -136,7 +136,7 @@ export const DashboardScreen = ({ navigation }: DashboardScreenProps) => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('GoalSetting', { initialGoal: monthlyGoal })}>
-          <DailyGoalCard data={dailyGoalData} todayRevenue={todayRevenue} />
+          <DailyGoalCard data={dailyGoalData} todayRevenue={todayRevenue} onEditGoal={() => navigation.navigate('GoalSetting', { initialGoal: monthlyGoal })} />
         </TouchableOpacity>
 
         <TrendChartCard />

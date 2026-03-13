@@ -17,6 +17,15 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
   const [distance, setDistance] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleMinutesChange = (value: string) => {
+    const num = parseInt(value || '0', 10);
+    if (num > 59) {
+      setMinutes('59');
+    } else {
+      setMinutes(value);
+    }
+  };
+
   const handleClose = () => {
     setHours('');
     setMinutes('');
@@ -37,11 +46,11 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose} statusBarTranslucent>
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
         <View style={styles.modalContainer}>
 
           <View style={styles.headerBar}>
@@ -52,11 +61,12 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
             <View style={{ width: 40 }} />
           </View>
 
-          <Text style={styles.instruction}>오늘 운행 기록을 입력하세요</Text>
+          <Text style={styles.instruction}>오늘 하루 총 운행 시간과 거리를 입력해주세요</Text>
+          <Text style={styles.hint}>퇴근 후 하루에 한 번 입력하면 됩니다</Text>
 
           {/* 운행 시간 */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>⏱ 운행 시간</Text>
+            <Text style={styles.sectionLabel}>운행 시간</Text>
             <View style={styles.timeRow}>
               <View style={styles.fieldWrapper}>
                 <TextInput
@@ -75,7 +85,7 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
                 <TextInput
                   style={styles.input}
                   value={minutes}
-                  onChangeText={setMinutes}
+                  onChangeText={handleMinutesChange}
                   keyboardType="number-pad"
                   placeholder="0"
                   placeholderTextColor="#CCC"
@@ -88,18 +98,20 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
 
           {/* 주행 거리 */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>🚗 주행 거리</Text>
-            <View style={styles.fieldWrapper}>
-              <TextInput
-                style={[styles.input, styles.inputFull]}
-                value={distance}
-                onChangeText={setDistance}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor="#CCC"
-                maxLength={7}
-              />
-              <Text style={styles.fieldUnit}>km</Text>
+            <Text style={styles.sectionLabel}>주행 거리</Text>
+            <View style={styles.timeRow}>
+              <View style={styles.fieldWrapper}>
+                <TextInput
+                  style={[styles.input, styles.inputFull]}
+                  value={distance}
+                  onChangeText={setDistance}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor="#CCC"
+                  maxLength={7}
+                />
+                <Text style={styles.fieldUnit}>km</Text>
+              </View>
             </View>
           </View>
 
@@ -114,7 +126,8 @@ export const DrivingInputModal = ({ visible, onClose, onConfirm }: DrivingInputM
           </TouchableOpacity>
 
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
@@ -152,9 +165,15 @@ const styles = StyleSheet.create({
   },
   instruction: {
     fontSize: 15,
-    color: '#888',
+    color: '#555',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: 4,
+  },
+  hint: {
+    fontSize: 12,
+    color: '#BDBDBD',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   section: {
     marginBottom: 24,

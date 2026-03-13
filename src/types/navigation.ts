@@ -13,7 +13,6 @@ export type RootStackParamList = {
 export type DashboardTabParamList = {
   Today: undefined;
   Month: undefined;
-  Efficiency: undefined;
 };
 
 export type LoginScreenProps       = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -23,6 +22,5 @@ export type GoalSettingScreenProps  = NativeStackScreenProps<RootStackParamList,
 export type MonthlyReportScreenProps = NativeStackScreenProps<RootStackParamList, 'MonthlyReport'>;
 export type WorkDaysScreenProps      = NativeStackScreenProps<RootStackParamList, 'WorkDays'>;
 
-export type TodayScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Today'>;
-export type MonthScreenProps      = BottomTabScreenProps<DashboardTabParamList, 'Month'>;
-export type EfficiencyScreenProps = BottomTabScreenProps<DashboardTabParamList, 'Efficiency'>;
+export type TodayScreenProps = BottomTabScreenProps<DashboardTabParamList, 'Today'>;
+export type MonthScreenProps = BottomTabScreenProps<DashboardTabParamList, 'Month'>;

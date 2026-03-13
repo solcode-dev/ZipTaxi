@@ -4,9 +4,11 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useDashboard } from '../../context/DashboardContext';
 import { TrendChartCard } from '../../components/TrendChartCard';
+import { DrivingStatsCard } from '../../components/DrivingStatsCard';
 import { RevenueHistoryModal } from '../../components/RevenueHistoryModal';
 import { formatCurrency } from '../../utils/formatUtils';
 import { theme } from '../../theme';
@@ -19,67 +21,127 @@ export const MonthScreen = () => {
   const {
     totalRevenue, monthlyRevenue, monthlyExpense,
     netProfit, progressPct, monthlyGoal,
+    monthlyDrivingMinutes, monthlyDistanceKm,
+    perHour, perKm, prevPerHour, prevPerKm,
   } = useDashboard();
 
   const [historyVisible, setHistoryVisible] = useState(false);
 
+  const dailyAvg = Math.round(monthlyRevenue / new Date().getDate());
+
   return (
+    <View style={styles.screen}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* 이번 달 총 수입 */}
       <TouchableOpacity
         style={styles.card}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
         onPress={() => setHistoryVisible(true)}
       >
-        <View style={styles.cardHeaderBetween}>
-          <Text style={styles.cardLabel}>💰 이번 달 총 수입</Text>
-          <Text style={styles.historyIcon}>📄</Text>
+        {/* 헤더 */}
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardLabel}>이번 달 총 수입</Text>
+          <Ionicons name="chevron-forward" size={16} color="#BDBDBD" />
         </View>
-        <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)} 원</Text>
-        <Text style={styles.subText}>누적 총 수입: {formatCurrency(totalRevenue)} 원</Text>
-        <View style={styles.profitRow}>
-          <Text style={styles.netProfitText}>순이익: {formatCurrency(netProfit)} 원</Text>
-          <Text style={styles.expenseText}>이달 지출: {formatCurrency(monthlyExpense)} 원</Text>
+
+        {/* 메인 수치 */}
+        <View style={styles.heroRow}>
+          <Text style={styles.mainValue}>{formatCurrency(monthlyRevenue)}</Text>
+          <Text style={styles.mainUnit}>원</Text>
         </View>
+
+        {/* 구분선 */}
+        <View style={styles.divider} />
+
+        {/* 순이익 / 지출 */}
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCell}>
+            <Text style={styles.badgeLabel}>순이익</Text>
+            <Text style={[styles.badgeValue, netProfit > 0 ? styles.profit : styles.loss]}>
+              {netProfit > 0 ? '+' : ''}{formatCurrency(netProfit)}원
+            </Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryCell}>
+            <Text style={styles.badgeLabel}>이달 지출</Text>
+            <Text style={[styles.badgeValue, monthlyExpense > 0 ? styles.loss : styles.neutral]}>
+              {monthlyExpense > 0 ? '-' : ''}{formatCurrency(monthlyExpense)}원
+            </Text>
+          </View>
+        </View>
+
+        {/* 목표 달성률 */}
+        {monthlyGoal > 0 && (
+          <View style={styles.goalRow}>
+            <View style={styles.goalMeta}>
+              <Text style={styles.goalLabel}>목표 {formatCurrency(monthlyGoal)}원</Text>
+              <Text style={styles.goalPct}>{Math.round(progressPct)}%</Text>
+            </View>
+            <View style={styles.goalProgressBg}>
+              <View style={[styles.goalProgressFill, { width: `${Math.min(100, progressPct)}%` }]} />
+            </View>
+          </View>
+        )}
+
+        {/* 페이스 / 누적 */}
+        <Text style={styles.paceText}>일 평균 {formatCurrency(dailyAvg)}원</Text>
+        <Text style={styles.cumulativeText}>누적 수입 {formatCurrency(totalRevenue)}원</Text>
       </TouchableOpacity>
+
+      {/* 운행 효율 */}
+      <DrivingStatsCard
+        monthlyDrivingMinutes={monthlyDrivingMinutes}
+        monthlyDistanceKm={monthlyDistanceKm}
+        perHour={perHour}
+        perKm={perKm}
+        prevPerHour={prevPerHour}
+        prevPerKm={prevPerKm}
+      />
 
       {/* 트렌드 차트 */}
       <TrendChartCard />
-
-      {/* 월 목표 달성률 */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>월 목표 달성률</Text>
-        <Text style={styles.goalText}>목표: {formatCurrency(monthlyGoal)} 원</Text>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: `${Math.min(100, progressPct)}%` }]} />
-        </View>
-        <Text style={styles.progressText}>{Math.round(progressPct)}% 달성</Text>
-      </View>
-
-      {/* 월간 리포트 */}
-      <TouchableOpacity
-        style={styles.reportButton}
-        onPress={() => navigation.navigate('MonthlyReport')}
-      >
-        <Text style={styles.reportButtonText}>📊 월간 리포트 보기 →</Text>
-      </TouchableOpacity>
 
       <RevenueHistoryModal
         visible={historyVisible}
         onClose={() => setHistoryVisible(false)}
       />
     </ScrollView>
+
+    {/* 월간 리포트 — 항상 보이는 하단 고정 */}
+    <View style={styles.footer}>
+      <TouchableOpacity
+        style={styles.reportButton}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('MonthlyReport')}
+      >
+        <Ionicons name="bar-chart-outline" size={18} color="#fff" />
+        <Text style={styles.reportButtonText}>월간 리포트 보기</Text>
+        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.6)" />
+      </TouchableOpacity>
+    </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
+  container: {
+    flex: 1,
+  },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 16,
+  },
+  footer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 20,
+    backgroundColor: '#F5F7FA',
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -92,81 +154,124 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardHeaderBetween: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
   },
   cardLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#9E9E9E',
     fontWeight: '600',
-    marginBottom: 8,
+    letterSpacing: 0.2,
   },
-  historyIcon: {
-    fontSize: 16,
-    color: '#999',
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 2,
   },
   mainValue: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: theme.colors.primary,
-    marginBottom: 4,
+    color: '#1A1A2E',
+    letterSpacing: -0.5,
   },
-  subText: {
-    fontSize: 14,
-    color: '#4CAF50',
+  mainUnit: {
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
+    color: '#9E9E9E',
   },
-  profitRow: {
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 14,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#F0F0F0',
+  },
+  badgeLabel: {
+    fontSize: 11,
+    color: '#BDBDBD',
+    fontWeight: '500',
+  },
+  badgeValue: {
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  profit: {
+    color: '#3949AB',
+  },
+  loss: {
+    color: '#E53935',
+  },
+  neutral: {
+    color: '#9E9E9E',
+  },
+  goalRow: {
+    marginTop: 14,
+    gap: 6,
+  },
+  goalMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    alignItems: 'center',
   },
-  netProfitText: {
-    fontSize: 13,
-    color: '#1565C0',
-    fontWeight: '600',
+  goalLabel: {
+    fontSize: 11,
+    color: '#BDBDBD',
   },
-  expenseText: {
-    fontSize: 13,
-    color: '#E53935',
-    fontWeight: '600',
+  goalPct: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: '700',
   },
-  goalText: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 12,
-  },
-  progressBg: {
-    height: 12,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 6,
-    marginBottom: 8,
+  goalProgressBg: {
+    height: 4,
+    backgroundColor: '#EEEEEE',
+    borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: {
+  goalProgressFill: {
     height: '100%',
-    backgroundColor: '#FFC107',
-    borderRadius: 6,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 2,
   },
-  progressText: {
-    fontSize: 14,
-    color: '#FFC107',
-    fontWeight: 'bold',
+  paceText: {
+    fontSize: 11,
+    color: '#9E9E9E',
+    marginTop: 12,
+  },
+  cumulativeText: {
+    fontSize: 11,
+    color: '#BDBDBD',
+    marginTop: 4,
   },
   reportButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    gap: 8,
   },
   reportButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

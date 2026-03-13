@@ -1,16 +1,15 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import OpenAI from 'openai';
 
+const openaiApiKey = defineSecret('OPENAI_API_KEY');
+
 initializeApp();
 
-// OpenAI 인스턴스 — 함수 호출 시점에 초기화하여 배포 분석 오류 방지
-let openai: OpenAI | null = null;
-const getOpenAI = () => {
-  if (!openai) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return openai;
-};
+// OpenAI 인스턴스 — 함수 호출 시점에 Secret 값으로 초기화
+const getOpenAI = () => new OpenAI({ apiKey: openaiApiKey.value() });
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -103,6 +102,7 @@ export const socialLogin = onCall<SocialLoginRequest, Promise<SocialLoginRespons
  * OPENAI_API_KEY는 서버 환경변수에만 존재하며 클라이언트에 노출되지 않습니다.
  */
 export const analyzeRevenue = onCall<AnalyzeRevenueRequest, Promise<AnalyzeRevenueResponse>>(
+  { secrets: [openaiApiKey] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError('unauthenticated', '로그인이 필요합니다.');

@@ -25,7 +25,7 @@ export const useRevenueTracker = () => {
     try {
       await runTransaction(firebaseDb, async (transaction) => {
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) throw '사용자가 존재하지 않습니다!';
+        if (!userDoc.exists) throw new Error('사용자가 존재하지 않습니다!');
 
         const data = userDoc.data() || {};
         const lastDate = data.lastRevenueDate || '';
@@ -73,7 +73,7 @@ export const useRevenueTracker = () => {
     try {
       await runTransaction(firebaseDb, async (transaction) => {
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) throw '사용자가 존재하지 않습니다!';
+        if (!userDoc.exists) throw new Error('사용자가 존재하지 않습니다!');
 
         const data = userDoc.data() || {};
         const newToday = dateStr === todayStr

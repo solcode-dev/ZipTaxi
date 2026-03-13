@@ -56,12 +56,9 @@ export const TrendChartCard = () => {
         )}
       </View>
 
-      <Text style={styles.insightText}>
-        {loading ? '데이터를 집계하고 있습니다.' : 
-         chartData.some(d => d.value > 0) 
-         ? '💡 이번 주는 운행 성과가 실시간으로 반영되고 있습니다!' 
-         : '💡 이번 주 첫 수입을 입력하고 그래프를 완성해보세요!'}
-      </Text>
+      {!loading && !chartData.some(d => d.value > 0) && (
+        <Text style={styles.emptyText}>이번 주 첫 수입을 입력하면 그래프가 완성됩니다.</Text>
+      )}
     </View>
   );
 };
@@ -127,13 +124,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
-  insightText: {
-    fontSize: 14,
-    color: '#555',
-    backgroundColor: '#F5F7FA',
-    padding: 12,
-    borderRadius: 8,
+  emptyText: {
+    fontSize: 12,
+    color: '#BDBDBD',
     textAlign: 'center',
+    marginTop: 4,
   },
   yAxisText: {
     color: '#999',

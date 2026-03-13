@@ -26,8 +26,7 @@ export const AppNavigator = () => (
       <Stack.Screen name="Dashboard" component={DashboardTabNavigator} />
       <Stack.Screen name="GoalSetting" component={GoalSettingScreen}
         options={{ headerShown: true, title: '목표 설정', headerBackTitle: '뒤로' }} />
-      <Stack.Screen name="MonthlyReport" component={MonthlyReportScreen}
-        options={{ headerShown: true, title: '월간 리포트', headerBackTitle: '뒤로' }} />
+      <Stack.Screen name="MonthlyReport" component={MonthlyReportScreen} />
       <Stack.Screen name="WorkDays" component={WorkDaysScreen}
         options={{ headerShown: true, title: '근무일 설정', headerBackTitle: '뒤로' }} />
     </Stack.Navigator>

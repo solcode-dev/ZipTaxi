@@ -5,17 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeRevenue = exports.socialLogin = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("firebase-functions/params");
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const openai_1 = __importDefault(require("openai"));
+const openaiApiKey = (0, params_1.defineSecret)('OPENAI_API_KEY');
 (0, app_1.initializeApp)();
-// OpenAI 인스턴스 — 함수 호출 시점에 초기화하여 배포 분석 오류 방지
-let openai = null;
-const getOpenAI = () => {
-    if (!openai)
-        openai = new openai_1.default({ apiKey: process.env.OPENAI_API_KEY });
-    return openai;
-};
+// OpenAI 인스턴스 — 함수 호출 시점에 Secret 값으로 초기화
+const getOpenAI = () => new openai_1.default({ apiKey: openaiApiKey.value() });
 // ─── 소셜 로그인 헬퍼 ────────────────────────────────────────────────────────
 async function fetchJson(url, bearerToken) {
     const res = await fetch(url, {
@@ -69,7 +66,7 @@ exports.socialLogin = (0, https_1.onCall)(async (request) => {
  * 클라이언트로부터 수익 요약 텍스트를 받아 OpenAI로 분석 결과를 반환합니다.
  * OPENAI_API_KEY는 서버 환경변수에만 존재하며 클라이언트에 노출되지 않습니다.
  */
-exports.analyzeRevenue = (0, https_1.onCall)(async (request) => {
+exports.analyzeRevenue = (0, https_1.onCall)({ secrets: [openaiApiKey] }, async (request) => {
     if (!request.auth) {
         throw new https_1.HttpsError('unauthenticated', '로그인이 필요합니다.');
     }

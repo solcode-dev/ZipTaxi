@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DrivingPatternInsight — 렌더링 스냅샷 — 혼합형 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "flex-start",
+        "borderRadius": 10,
+        "flexDirection": "row",
+        "gap": 10,
+        "marginTop": 16,
+        "padding": 14,
+      },
+      {
+        "backgroundColor": "#EEF5FF",
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      {
+        "fontSize": 20,
+        "lineHeight": 24,
+      }
+    }
+  >
+    🔀
+  </Text>
+  <View
+    style={
+      {
+        "flex": 1,
+        "gap": 2,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontSize": 13,
+            "fontWeight": "700",
+          },
+          {
+            "color": "#3498DB",
+          },
+        ]
+      }
+    >
+      혼합형
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#666",
+          "fontSize": 13,
+          "lineHeight": 18,
+        }
+      }
+    >
+      시내·장거리 균형이 잘 잡혀 있어요
+    </Text>
+  </View>
+</View>
+`;

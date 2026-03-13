@@ -7,8 +7,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDashboard } from '../../context/DashboardContext';
 import { DailyGoalCard } from '../../components/DailyGoalCard';
 import { CustomAlert } from '../../components/CustomAlert';
+import { Toast } from '../../components/Toast';
 import { RevenueInputModal } from '../../components/RevenueInputModal';
 import { ExpenseInputModal } from '../../components/ExpenseInputModal';
+import { DrivingInputModal } from '../../components/DrivingInputModal';
 import { formatCurrency } from '../../utils/formatUtils';
 import { theme } from '../../theme';
 import type { RootStackParamList } from '../../types/navigation';
@@ -20,12 +22,15 @@ export const TodayScreen = () => {
   const navigation = useNavigation<RootNav>();
   const {
     monthlyGoal, todayRevenue, todayExpense,
-    currentMonthWorkDays, dailyGoalData, addRevenue, addExpense,
+    currentMonthWorkDays, dailyGoalData, addRevenue, addExpense, addDrivingSession,
+    todayDrivingRecorded,
   } = useDashboard();
 
   const [revenueModalVisible, setRevenueModalVisible] = useState(false);
   const [expenseModalVisible, setExpenseModalVisible] = useState(false);
+  const [drivingModalVisible, setDrivingModalVisible] = useState(false);
   const [alertVisible,        setAlertVisible]        = useState(false);
+  const [toastVisible,        setToastVisible]        = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
 
   const showAlert = (title: string, message: string) => {
@@ -39,6 +44,14 @@ export const TodayScreen = () => {
 
   const handleExpenseConfirm = async (amount: number, category: ExpenseCategory) => {
     if (!await addExpense(amount, category)) showAlert('오류', '지출 저장에 실패했습니다.');
+  };
+
+  const handleDrivingConfirm = async (minutes: number, distanceKm: number) => {
+    if (await addDrivingSession(minutes, distanceKm)) {
+      setToastVisible(true);
+    } else {
+      showAlert('오류', '운행 기록 저장에 실패했습니다.');
+    }
   };
 
   return (
@@ -85,6 +98,14 @@ export const TodayScreen = () => {
           <Text style={styles.actionBtnText}>💸 지출 기록</Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity
+        style={[styles.drivingBtn, todayDrivingRecorded && styles.drivingBtnDone]}
+        onPress={() => setDrivingModalVisible(true)}
+      >
+        <Text style={[styles.drivingBtnText, todayDrivingRecorded && styles.drivingBtnTextDone]}>
+          {todayDrivingRecorded ? '✓ 오늘 운행 기록됨 · 수정하기' : '🚗 퇴근 후 운행 기록 입력'}
+        </Text>
+      </TouchableOpacity>
 
       <CustomAlert
         visible={alertVisible}
@@ -101,6 +122,16 @@ export const TodayScreen = () => {
         visible={expenseModalVisible}
         onClose={() => setExpenseModalVisible(false)}
         onConfirm={handleExpenseConfirm}
+      />
+      <DrivingInputModal
+        visible={drivingModalVisible}
+        onClose={() => setDrivingModalVisible(false)}
+        onConfirm={handleDrivingConfirm}
+      />
+      <Toast
+        visible={toastVisible}
+        message="운행 기록이 저장됐습니다"
+        onHide={() => setToastVisible(false)}
       />
     </SafeAreaView>
   );
@@ -145,6 +176,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 16,
+    marginBottom: 12,
   },
   actionBtn: {
     flex: 1,
@@ -161,6 +193,27 @@ const styles = StyleSheet.create({
   actionBtnExpense: {
     backgroundColor: '#E53935',
     shadowColor: '#E53935',
+  },
+  drivingBtn: {
+    marginHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CFD8DC',
+    backgroundColor: '#FAFAFA',
+  },
+  drivingBtnDone: {
+    borderColor: '#A5D6A7',
+    backgroundColor: '#F1F8E9',
+  },
+  drivingBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#546E7A',
+  },
+  drivingBtnTextDone: {
+    color: '#388E3C',
   },
   actionBtnText: {
     color: '#FFFFFF',

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
 
 import { useUserDoc } from '../hooks/useUserDoc';
 import { useRevenueTracker } from '../hooks/useRevenueTracker';
@@ -28,18 +28,25 @@ export interface DashboardContextValue {
   todayExpense: number;
   monthlyDrivingMinutes: number;
   monthlyDistanceKm: number;
+  todayDrivingRecorded: boolean;
   currentMonthWorkDays: number[];
   // 파생 계산값
   netProfit: number;
   progressPct: number;
   perHour: number | null;
   perKm: number | null;
+  prevPerHour: number | null;
+  prevPerKm: number | null;
   dailyGoalData: DailyGoalResult;
   streakData: StreakData;
   // 액션
   addRevenue: (amount: number, source: RevenueSource) => Promise<boolean>;
   addExpense: (amount: number, category: ExpenseCategory) => Promise<boolean>;
   addDrivingSession: (minutes: number, distanceKm: number) => Promise<boolean>;
+  // 설정 모달
+  settingsVisible: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -77,9 +84,15 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
     dailyGoalData.dailyTarget,
   );
 
-  const value = useMemo<DashboardContextValue>(() => {
-    const drivingHours = userDoc.monthlyDrivingMinutes / 60;
-    const netProfit    = userDoc.monthlyRevenue - userDoc.monthlyExpense;
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const openSettings  = useCallback(() => setSettingsVisible(true),  []);
+  const closeSettings = useCallback(() => setSettingsVisible(false), []);
+
+  const dataValue = useMemo(() => {
+    const drivingHours     = userDoc.monthlyDrivingMinutes / 60;
+    const netProfit        = userDoc.monthlyRevenue - userDoc.monthlyExpense;
+    const prevDrivingHours = userDoc.prevMonthDrivingMinutes / 60;
+    const prevNetProfit    = userDoc.prevMonthRevenue - userDoc.prevMonthExpense;
     return {
       ...userDoc,
       netProfit,
@@ -90,6 +103,10 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
       perKm:   userDoc.monthlyDistanceKm > 0
         ? Math.round(netProfit / userDoc.monthlyDistanceKm)
         : null,
+      prevPerHour: prevDrivingHours > 0 ? Math.round(prevNetProfit / prevDrivingHours) : null,
+      prevPerKm:   userDoc.prevMonthDistanceKm > 0
+        ? Math.round(prevNetProfit / userDoc.prevMonthDistanceKm)
+        : null,
       dailyGoalData,
       streakData,
       addRevenue,
@@ -97,6 +114,13 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
       addDrivingSession,
     };
   }, [userDoc, dailyGoalData, streakData, addRevenue, addExpense, addDrivingSession]);
+
+  const value = useMemo<DashboardContextValue>(() => ({
+    ...dataValue,
+    settingsVisible,
+    openSettings,
+    closeSettings,
+  }), [dataValue, settingsVisible, openSettings, closeSettings]);
 
   return (
     <DashboardContext.Provider value={value}>
